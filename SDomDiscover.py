@@ -1,5 +1,6 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
+# Libraries
 import signal
 import requests
 import sys
@@ -10,6 +11,7 @@ import dns.resolver
 import pydig
 from time import sleep
 
+# Output Colours
 class c:
     PURPLE = '\033[95m'
     BLUE = '\033[94m'
@@ -20,11 +22,13 @@ class c:
     END = '\033[0m'
     UNDERLINE = '\033[4m'
 
+# Ctrl + C Exit Function
 def ctrl_c(sig, frame):
-    sys.exit(c.RED + "[!] Interrupt handler received, exiting..." + c.END)
+    sys.exit(c.RED + "\n[!] Interrupt handler received, exiting...\n" + c.END)
 
 signal.signal(signal.SIGINT, ctrl_c)
 
+# Banner Function
 def banner():
     print(c.YELLOW + '                _____                   ')
     print('             .-"     "-.                ')
@@ -44,6 +48,7 @@ def banner():
     print('         |==.___________.==|            ')
     print('         `==.___________.==\'           ' + c.END)
 
+# Argument parser Function
 def parseArgs():
 
     p = argparse.ArgumentParser(description="SDomDiscover - Silent Domain Discoverer - Abusing SSL transparency")
@@ -58,6 +63,7 @@ def parseArgs():
 
     return p.parse_args()
 
+# Nameservers Function 
 def ns_enum(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Trying to discover valid name servers...\n" + c.END)
     sleep(0.5)
@@ -68,6 +74,7 @@ def ns_enum(domain):
         ns = ns[:l-1]
         print(c.YELLOW + ns + c.END)
 
+# IPs discover Function
 def ip_enum(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Trying to discover the IPs...\n" + c.END)
     sleep(0.5)
@@ -76,6 +83,7 @@ def ip_enum(domain):
     for ip in data:
         print(c.YELLOW + ip + c.END)
 
+# Mail servers Function
 def mail_enum(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Trying to discover valid mail servers...\n" + c.END)
     sleep(0.5)
@@ -87,6 +95,7 @@ def mail_enum(domain):
         mail_servers = mail_output[:l-1]
         print(c.YELLOW + mail_servers + c.END)
 
+# Domain Zone Transfer Attack Function
 def axfr(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "*" + c.END + c.BLUE + "] Starting Domain Zone Transfer attack...\n" + c.END)
     sleep(0.5)
@@ -104,6 +113,7 @@ def axfr(domain):
                 print(c.YELLOW + "[" + c.END + c.RED + "-" + c.END + c.YELLOW + "] NS {} refused zone transfer!".format(server) + c.END)
                 continue
 
+# Main Domain Discoverer Function
 def SDom(domain,filename):
     banner()
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Discovering valid subdomains...\n" + c.END)
@@ -118,6 +128,7 @@ def SDom(domain,filename):
     if filename != None:
         f = open(filename, "a")
 
+    # Print the domains in a table format depending the domain length
     print(c.YELLOW + "+" + "-"*39 + "+")
     for value in doms:
         if not value.startswith('*' + "." + domain):
@@ -152,21 +163,25 @@ def SDom(domain,filename):
         f.close()
         print(c.BLUE + "\n[+] Output stored in " + filename)
 
+# Program workflow starts here
 if __name__ == '__main__':
 
     parse = parseArgs()
 
+    # If --version is passed
     if parse.version:
         print("\nSDomDiscover v1.0 - By D3Ext")
         print("Contact me: <d3ext@proton.me>\n")
         sys.exit(0)
 
+    # If --output is passed
     if parse.output:
         store_info=1
         filename = parse.output
     else:
         filename = None
 
+    # Check passed enumeration parameters
     if parse.domain and parse.all:
         domain = parse.domain
         if domain.startswith('https://'):
@@ -210,7 +225,4 @@ if __name__ == '__main__':
             ip_enum(domain)
 
         sys.exit(0)
-
-
-
 
