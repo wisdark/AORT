@@ -40,10 +40,15 @@ python3 SDomDiscover.py -h
 python3 SDomDiscover.py -d example.com
 ```
 
-> How to perform all the queries and recognizement
+> Used to perform all the queries and recognizement
 ```sh
 python3 SDomDiscover.py -d domain.com --all
 ```
+
+## ⭕ Demo:
+
+> Simple query to find valid subdomains
+<img src="https://raw.githubusercontent.com/D3Ext/SDomDiscover/main/demo.png">
 
 **If you consider this project has been useful, I would really appreciate supporting me by giving this repo a star or buying me a coffee.**
 
