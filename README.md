@@ -47,7 +47,9 @@ python3 SDomDiscover.py -d domain.com --all
 ## ⭕ Features:
 
 :ballot_box_with_check: Dump valid subdomains 
+
 :ballot_box_with_check: Store subdomains in a file
+
 :ballot_box_with_check: A lot of extra queries to enumerate the DNS port
 
 ## ⭕ Demo:
