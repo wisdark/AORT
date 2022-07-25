@@ -1,13 +1,4 @@
-# SDomDiscover
-
-```
-   _____ ____                  ____  _                               
-  / ___// __ \____  ____ ___  / __ \(_)_____________ _   _____  _____
-  \__ \/ / / / __ \/ __ `__ \/ / / / / ___/ ___/ __ \ | / / _ \/ ___/
- ___/ / /_/ / /_/ / / / / / / /_/ / (__  ) /__/ /_/ / |/ /  __/ /    
-/____/_____/\____/_/ /_/ /_/_____/_/____/\___/\____/|___/\___/_/     
-                                                                
-```
+<img src="https://raw.githubusercontent.com/D3Ext/SDomDiscover/main/SDomDiscover.png" width=1100 height=500>
 
 `A easy-to-use python tool to perform dns recon with multiple options`
 
