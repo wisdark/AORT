@@ -3,9 +3,15 @@
 `A easy-to-use python tool to perform dns recon with multiple options`
 
 ## ⭕ Installation:
-It can be installed in any OS with python3
+It can be installed in any UNIX with python3
 
-> Manual installation
+You can easily install SDomDiscover using pip:
+
+```sh
+pip3 install sdomdiscover
+```
+
+If you want to install it from source:
 ```sh
 git clone https://github.com/D3Ext/SDomDiscover
 cd SDomDiscover
@@ -20,6 +26,11 @@ git clone https://github.com/D3Ext/SDomDiscover && cd SDomDiscover && pip3 insta
 ## ⭕ Usage:
 
 > Common usages
+
+> If installed with pip3:
+```sh
+python3 -m sdomdiscover
+```
 
 > To see the help panel and other parameters
 ```sh
