@@ -29,7 +29,7 @@ git clone https://github.com/D3Ext/SDomDiscover && cd SDomDiscover && pip3 insta
 
 > If installed with pip3:
 ```sh
-python3 -m sdomdiscover
+sdomdiscover
 ```
 
 > To see the help panel and other parameters
