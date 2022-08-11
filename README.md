@@ -2,7 +2,7 @@
 
 `A easy-to-use python tool to perform dns recon with multiple options`
 
-## ⭕ Installation:
+## Installation:
 It can be installed in any UNIX with python3
 
 You can easily install SDomDiscover using pip:
@@ -23,7 +23,7 @@ pip3 install -r requirements.txt
 git clone https://github.com/D3Ext/SDomDiscover && cd SDomDiscover && pip3 install -r requirements.txt && python3 SDomDiscover.py
 ```
 
-## ⭕ Usage:
+## Usage:
 
 > Common usages
 
@@ -46,7 +46,7 @@ python3 SDomDiscover.py -d example.com
 ```sh
 python3 SDomDiscover.py -d domain.com --all
 ```
-## ⭕ Features:
+## Features:
 
 :ballot_box_with_check: Dump valid subdomains 
 
@@ -54,7 +54,7 @@ python3 SDomDiscover.py -d domain.com --all
 
 :ballot_box_with_check: A lot of extra queries to enumerate the DNS port
 
-## ⭕ Demo:
+## Demo:
 
 > Simple query to find valid subdomains
 <img src="https://raw.githubusercontent.com/D3Ext/SDomDiscover/main/demo.png">
