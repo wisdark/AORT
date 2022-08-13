@@ -3,6 +3,7 @@
 # Libraries
 import signal
 import requests
+import ssl
 import sys
 import re
 import json
@@ -11,6 +12,9 @@ import dns.zone
 import dns.resolver
 import pydig
 from time import sleep
+import os
+import warnings
+import urllib3
 import pdb
 
 # Output Colours
@@ -60,6 +64,7 @@ def parseArgs():
     p.add_argument('-e', '--extra', help="look for extra dns information", action='store_true', required=False)
     p.add_argument("-n", "--nameservers", help="try to enumerate the name servers", action='store_true', required=False)
     p.add_argument("-i", "--ip", help="it reports the ip or ips of the domain", action='store_true', required=False)
+    p.add_argument("-w", "--waf", required=False, action='store_true', help="discover the WAF of the domain main page")
     p.add_argument('-6', '--ipv6', help="enumerate the ipv6 of the domain", action='store_true', required=False)
     p.add_argument("-o", "--output", help="file to store the scan output", required=False)
     p.add_argument("--all", help="perform all the enumeration at once", action='store_true', required=False)
@@ -105,6 +110,7 @@ def txt_enum(domain):
     else:
         print(c.YELLOW + "Unable to enumerate" + c.END)
 
+# Function to discover the IPv6 of the target
 def ipv6_enum(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Getting ipv6 of the domain...\n" + c.END)
     sleep(0.2)
@@ -137,17 +143,103 @@ def axfr(domain):
     sleep(0.2)
     ns_answer = dns.resolver.resolve(domain, 'NS')
     for server in ns_answer:
-        print(c.YELLOW + "[*] Found NS: {}".format(server) + c.END)
+        print(c.YELLOW + "Found NS: {}".format(server) + c.END)
         ip_answer = dns.resolver.resolve(server.target, 'A')
         for ip in ip_answer:
-            print(c.YELLOW + "[*] IP for {} is {}".format(server, ip) + c.END)
+            print(c.YELLOW + "IP for {} is {}".format(server, ip) + c.END)
             try:
                 zone = dns.zone.from_xfr(dns.query.xfr(str(ip), domain))
                 for host in zone:
-                    print(c.YELLOW + "[" + c.END + c.GREEN + "+" + c.END + c.YELLOW + "] Found Host: {}".format(host) + c.END)
+                    print(c.YELLOW + "Found Host: {}".format(host) + c.END)
             except Exception as e:
-                print(c.YELLOW + "[" + c.END + c.RED + "-" + c.END + c.YELLOW + "] NS {} refused zone transfer!".format(server) + c.END)
+                print(c.YELLOW + "NS {} refused zone transfer!".format(server) + c.END)
                 continue
+
+# Modified function from https://github.com/Nefcore/CRLFsuite WAF detector script <3
+def wafDetector(domain):
+    # Get list of WAFs
+    r = requests.get("https://raw.githubusercontent.com/Nefcore/CRLFsuite/main/crlfsuite/db/wafsign.json")
+
+    f = open('wafsign.json', 'w')
+    f.write(r.text)
+    f.close()
+
+    with open('wafsign.json', 'r') as file:
+        wafsigns = json.load(file)
+
+    print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Discovering active WAF on the main web page...\n" + c.END)
+    sleep(1)
+    
+    payload = "../../../../etc/passwd"
+
+    try:
+        _create_unverified_https_context = ssl._create_unverified_context
+    except:
+        pass
+
+    try:
+        if domain.endswith("/") and domain.startswith("https://"):
+            response = requests.get(domain + payload, verify=False)
+
+        elif domain.endswith("/") and not domain.startswith("https://"):
+            response = requests.get('https://' + domain + payload, verify=False)
+
+        elif not domain.endswith("/") and domain.startswith("https://"):
+            response = requests.get(domain + '/' + payload, verify=False)
+        
+        elif not domain.endswith("/") and not domain.startswith("https://"):
+            response = requests.get('https://' + domain + '/' + payload, verify=False)
+
+    except:
+        print(c.YELLOW + "An error has ocurred" + c.END)
+
+        try:
+            os.remove('wafsign.json')
+        except:
+            pass
+    
+        return None
+
+    code = str(response.status_code)
+    page = response.text
+    headers = str(response.headers)
+    cookie = str(response.cookies.get_dict())
+
+    if int(code) >= 400:
+        bmatch = [0, None]
+        for wafname, wafsign in wafsigns.items():
+            total_score = 0
+            pSign = wafsign["page"]
+            cSign = wafsign["code"]
+            hSign = wafsign["headers"]
+            ckSign = wafsign["cookie"]
+            if pSign:
+                if re.search(pSign, page, re.I):
+                    total_score += 1
+            if cSign:
+                if re.search(cSign, code, re.I):
+                    total_score += 0.5
+            if hSign:
+                if re.search(hSign, headers, re.I):
+                    total_score += 1
+            if ckSign:
+                if re.search(ckSign, cookie, re.I):
+                    total_score += 1
+            if total_score > bmatch[0]:
+                del bmatch[:]
+                bmatch.extend([total_score, wafname])
+        if bmatch[0] != 0:
+            print(c.YELLOW + bmatch[1] + c.END)
+        else:
+            print(c.YELLOW + "WAF not detected or doesn't exists" + c.END)
+    else:
+        print(response.url)
+        print(c.YELLOW + "An error has ocurred or unable to enumerate" + c.END)
+
+    try:
+        os.remove('wafsign.json')
+    except:
+        pass
 
 # Main Domain Discoverer Function
 def SDom(domain,filename):
@@ -168,46 +260,52 @@ def SDom(domain,filename):
 
     if filename != None:
         f = open(filename, "a")
+    
+    if domains:
+        # Print the domains in a table format depending the domain length
+        print(c.YELLOW + "+" + "-"*39 + "+")
+        for value in doms:
+            if not value.startswith('*' + "." + domain):
+    
+                if len(value) >= 10 and len(value) <= 14:
+                    l = len(value)
+                    print("| " + value + "    \t\t\t|")
+                    if filename != None:
+                        f.write(value + "\n")
 
-    # Print the domains in a table format depending the domain length
-    print(c.YELLOW + "+" + "-"*39 + "+")
-    for value in doms:
-        if not value.startswith('*' + "." + domain):
+                if len(value) >= 15 and len(value) <= 19:
+                    l = len(value)
+                    print("| " + value + "\t\t\t|")
+                    if filename != None:
+                        f.write(value + "\n")
 
-            if len(value) >= 10 and len(value) <= 14:
-                l = len(value)
-                print("| " + value + "    \t\t\t|")
-                if filename != None:
-                    f.write(value + "\n")
+                if len(value) >= 20 and len(value) <= 24:
+                    l = len(value)
+                    print("| " + value + "   \t\t|")
+                    if filename != None:
+                        f.write(value + "\n")
+    
+                if len(value) >= 25 and len(value) <= 29:
+                    l = len(value)
+                    print("| " + value + "\t\t|")
+                    if filename != None:
+                        f.write(value + "\n")
 
-            if len(value) >= 15 and len(value) <= 19:
-                l = len(value)
-                print("| " + value + "\t\t\t|")
-                if filename != None:
-                    f.write(value + "\n")
+        print("+" + "-"*39 + "+" + c.END)
+        print(c.YELLOW + "\nTotal discovered sudomains: " + str(len(doms) - 1) + c.END)
 
-            if len(value) >= 20 and len(value) <= 24:
-                l = len(value)
-                print("| " + value + "   \t\t|")
-                if filename != None:
-                    f.write(value + "\n")
-
-            if len(value) >= 25 and len(value) <= 29:
-                l = len(value)
-                print("| " + value + "\t\t|")
-                if filename != None:
-                    f.write(value + "\n")
-
-    print("+" + "-"*39 + "+" + c.END)
-    print(c.YELLOW + "\nTotal discovered sudomains: " + str(len(doms) - 1) + c.END)
-
-    if filename != None:
-        f.close()
-        print(c.BLUE + "\n[+] Output stored in " + filename)
+        if filename != None:
+            f.close()
+            print(c.BLUE + "\n[" + c.GREEN + "+" + c.BLUE + "] Output stored in " + filename)
+    else:
+        print(c.YELLOW + "Any subdomains discovered through SSL transparency" + c.END)
 
 # Program workflow starts here
 if __name__ == '__main__':
 
+    warnings.filterwarnings('ignore')
+    urllib3.disable_warnings()
+    
     # If --version is passed
     if "--version" in sys.argv:
         print("\nSDomDiscover v1.0 - By D3Ext")
@@ -215,6 +313,11 @@ if __name__ == '__main__':
         sys.exit(0)
 
     parse = parseArgs()
+
+    # Check domain format
+    if "." not in parse.domain:
+        print("\nInvalid domain format, example: domain.com")
+        sys.exit(0)
 
     # If --output is passed
     if parse.output:
@@ -239,6 +342,7 @@ if __name__ == '__main__':
         ip_enum(domain)
         ipv6_enum(domain)
         txt_enum(domain)
+        wafDetector(domain)
 
         sys.exit(0)
 
@@ -270,5 +374,9 @@ if __name__ == '__main__':
         if parse.extra:
             txt_enum(domain)
 
+        if parse.waf:
+            wafDetector(domain)
+
         sys.exit(0)
+
 
