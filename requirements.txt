@@ -2,4 +2,7 @@ requests
 pydig
 dnspython
 signal
+warnings
+urllib3
+ssl
 argparse
