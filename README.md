@@ -2,8 +2,10 @@
 
 `A easy-to-use python tool to perform dns recon with multiple options`
 
+If you want to know more about the tool you can read my own [post](https://d3ext.github.io/sdomdiscover) in my blog   
+
 ## Installation:
-It can be installed in any UNIX with python3
+It can be installed in any system with python3
 
 You can easily install SDomDiscover using pip:
 
