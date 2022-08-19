@@ -6,6 +6,7 @@ import requests
 import ssl
 import sys
 import re
+import whois
 import json
 import argparse
 import dns.zone
@@ -66,6 +67,7 @@ def parseArgs():
     p.add_argument("-i", "--ip", help="it reports the ip or ips of the domain", action='store_true', required=False)
     p.add_argument("-w", "--waf", required=False, action='store_true', help="discover the WAF of the domain main page")
     p.add_argument('-6', '--ipv6', help="enumerate the ipv6 of the domain", action='store_true', required=False)
+    p.add_argument('-t', '--token', help="api token of https://proxycrawl.com to crawl email accounts", required=False)
     p.add_argument("-o", "--output", help="file to store the scan output", required=False)
     p.add_argument("--all", help="perform all the enumeration at once", action='store_true', required=False)
     p.add_argument("--version", help="display the script version", action='store_true', required=False)
@@ -158,7 +160,7 @@ def axfr(domain):
 # Modified function from https://github.com/Nefcore/CRLFsuite WAF detector script <3
 def wafDetector(domain):
     # Get list of WAFs
-    r = requests.get("https://raw.githubusercontent.com/Nefcore/CRLFsuite/main/crlfsuite/db/wafsign.json")
+    r = requests.get("https://raw.githubusercontent.com/D3Ext/SDomDiscover/main/utils/wafsign.json")
 
     f = open('wafsign.json', 'w')
     f.write(r.text)
@@ -240,6 +242,15 @@ def wafDetector(domain):
         os.remove('wafsign.json')
     except:
         pass
+
+# Use the token
+def crawlMails(domain, api_token):
+
+    print(c.BLUE + "\n[" + c.GREEN + "+" + c.BLUE + "] Crawling valid email accounts" + c.END)
+    api_url = f"""https://api.proxycrawl.com/leads?token={api_token}&domain={domain}"""
+    r = requests.get(api_url)
+    print()
+    print(c.YELLOW + r.text + c.END)
 
 # Main Domain Discoverer Function
 def SDom(domain,filename):
@@ -344,6 +355,11 @@ if __name__ == '__main__':
         txt_enum(domain)
         wafDetector(domain)
 
+        if parse.token:
+            crawlMails(domain, parse.token)
+        else:
+            print(c.BLUE + "\n[" + c.GREEN + "-" + c.BLUE + "] No API token provided, skipping crawling" + c.END)
+
         sys.exit(0)
 
     if parse.domain:
@@ -376,6 +392,9 @@ if __name__ == '__main__':
 
         if parse.waf:
             wafDetector(domain)
+
+        if parse.token:
+            crawlMails(domain, parse.token)
 
         sys.exit(0)
 
