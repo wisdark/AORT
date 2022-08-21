@@ -3,7 +3,6 @@
 # Libraries
 try:
     import requests
-    import ssl
     import sys
     import re
     import whois
@@ -14,7 +13,6 @@ try:
     import pydig
     from time import sleep
     import os
-    import warnings
     import urllib3
     import pdb
 except:
@@ -210,11 +208,6 @@ def wafDetector(domain):
     payload = "../../../../etc/passwd"
 
     try:
-        _create_unverified_https_context = ssl._create_unverified_context
-    except:
-        pass
-
-    try:
 
         """
         Check the domain and modify if neccessary 
@@ -315,7 +308,7 @@ def subTakeover(all_subdomains):
     for subdom in all_subdomains:
         try:
             sleep(0.05)
-            resquery = dns.resolver.query(subdom, 'CNAME')
+            resquery = dns.resolver.resolve(subdom, 'CNAME')
             
             for resdata in resquery:
                 resdata = (resdata.to_text())
@@ -334,7 +327,7 @@ def subTakeover(all_subdomains):
             pass
     
     if vuln_counter <= 0:
-        print(c.YELLOW + "Any subdomain is vulnerable\n" + c.END)
+        print(c.YELLOW + "Any subdomain is vulnerable" + c.END)
 
 # Main Domain Discoverer Function
 def SDom(domain,filename):
@@ -346,7 +339,7 @@ def SDom(domain,filename):
     Get valid subdomains with a request to crt.sh
     """
 
-    r = requests.get("https://crt.sh/?q=" + domain + "&output=json", timeout=20)
+    r = requests.get("https://crt.sh/?q=" + domain + "&output=json", timeout=30)
     formatted_json = json.dumps(json.loads(r.text), indent=4)
     domains = re.findall(r'"common_name": "(.*?)"', formatted_json)
 
@@ -407,7 +400,6 @@ def SDom(domain,filename):
 # Program workflow starts here
 if __name__ == '__main__':
 
-    warnings.filterwarnings('ignore')
     urllib3.disable_warnings()
     
     # If --version is passed
