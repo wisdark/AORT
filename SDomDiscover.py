@@ -1,22 +1,25 @@
 #!/usr/bin/env python3
 
 # Libraries
-import signal
-import requests
-import ssl
-import sys
-import re
-import whois
-import json
-import argparse
-import dns.zone
-import dns.resolver
-import pydig
-from time import sleep
-import os
-import warnings
-import urllib3
-import pdb
+try:
+    import requests
+    import ssl
+    import sys
+    import re
+    import whois
+    import json
+    import argparse
+    import dns.zone
+    import dns.resolver
+    import pydig
+    from time import sleep
+    import os
+    import warnings
+    import urllib3
+    import pdb
+except:
+    print(c.YELLOW + "\n[" + c.RED + "-" + c.YELLOW + "] ERROR requirements missing try to install the requirements: pip3 install -r requirements.txt" + c.END)
+    sys.exit(0)
 
 # Output Colours
 class c:
@@ -28,12 +31,6 @@ class c:
     RED = '\033[91m'
     END = '\033[0m'
     UNDERLINE = '\033[4m'
-
-# Ctrl + C Exit Function
-def ctrl_c(sig, frame):
-    sys.exit(c.RED + "\n[!] Interrupt handler received, exiting...\n" + c.END)
-
-signal.signal(signal.SIGINT, ctrl_c)
 
 # Banner Function
 def banner():
@@ -65,7 +62,8 @@ def parseArgs():
     p.add_argument('-e', '--extra', help="look for extra dns information", action='store_true', required=False)
     p.add_argument("-n", "--nameservers", help="try to enumerate the name servers", action='store_true', required=False)
     p.add_argument("-i", "--ip", help="it reports the ip or ips of the domain", action='store_true', required=False)
-    p.add_argument("-w", "--waf", required=False, action='store_true', help="discover the WAF of the domain main page")
+    p.add_argument("-w", "--waf", help="discover the WAF of the domain main page", action='store_true', required=False)
+    p.add_argument("-s", "--subtakeover", help="check if any of the subdomains are vulnerable to Subdomain Takeover", action='store_true', required=False)
     p.add_argument('-6', '--ipv6', help="enumerate the ipv6 of the domain", action='store_true', required=False)
     p.add_argument('-t', '--token', help="api token of https://proxycrawl.com to crawl email accounts", required=False)
     p.add_argument("-o", "--output", help="file to store the scan output", required=False)
@@ -78,6 +76,11 @@ def parseArgs():
 def ns_enum(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Trying to discover valid name servers...\n" + c.END)
     sleep(0.2)
+
+    """
+    Query to get NS of the domain
+    """
+
     data = pydig.query(domain, 'NS')
 
     if data:
@@ -92,6 +95,11 @@ def ns_enum(domain):
 def ip_enum(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Discovering IPs of the domain...\n" + c.END)
     sleep(0.2)
+
+    """
+    Query to get ips
+    """
+
     data = pydig.query(domain, 'A')
 
     if data:
@@ -104,6 +112,11 @@ def ip_enum(domain):
 def txt_enum(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Enumerating extra DNS information...\n" + c.END)
     sleep(0.2)
+
+    """
+    Query to get extra info about the dns
+    """
+
     data = pydig.query(domain, 'TXT')
 
     if data:
@@ -116,6 +129,11 @@ def txt_enum(domain):
 def ipv6_enum(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Getting ipv6 of the domain...\n" + c.END)
     sleep(0.2)
+
+    """
+    Query to get ipv6
+    """
+
     data = pydig.query(domain, 'AAAA')
     
     if data:
@@ -128,6 +146,11 @@ def ipv6_enum(domain):
 def mail_enum(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Finding valid mail servers...\n" + c.END)
     sleep(0.2)
+
+    """
+    Query to get mail servers
+    """
+
     data = pydig.query(domain, 'MX')
 
     if data:
@@ -143,6 +166,11 @@ def mail_enum(domain):
 def axfr(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Starting Domain Zone Transfer attack...\n" + c.END)
     sleep(0.2)
+
+    """
+    Iterate through the name servers and try an AXFR attack on everyone
+    """
+
     ns_answer = dns.resolver.resolve(domain, 'NS')
     for server in ns_answer:
         print(c.YELLOW + "Found NS: {}".format(server) + c.END)
@@ -159,9 +187,12 @@ def axfr(domain):
 
 # Modified function from https://github.com/Nefcore/CRLFsuite WAF detector script <3
 def wafDetector(domain):
-    # Get list of WAFs
-    r = requests.get("https://raw.githubusercontent.com/D3Ext/SDomDiscover/main/utils/wafsign.json")
+    
+    """
+    Get WAFs list in a file
+    """
 
+    r = requests.get("https://raw.githubusercontent.com/D3Ext/SDomDiscover/main/utils/wafsign.json")
     f = open('wafsign.json', 'w')
     f.write(r.text)
     f.close()
@@ -172,6 +203,10 @@ def wafDetector(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Discovering active WAF on the main web page...\n" + c.END)
     sleep(1)
     
+    """
+    Payload to trigger the possible WAF
+    """
+
     payload = "../../../../etc/passwd"
 
     try:
@@ -180,6 +215,11 @@ def wafDetector(domain):
         pass
 
     try:
+
+        """
+        Check the domain and modify if neccessary 
+        """
+
         if domain.endswith("/") and domain.startswith("https://"):
             response = requests.get(domain + payload, verify=False)
 
@@ -207,6 +247,10 @@ def wafDetector(domain):
     headers = str(response.headers)
     cookie = str(response.cookies.get_dict())
 
+    """
+    Check if WAF has blocked the request
+    """
+
     if int(code) >= 400:
         bmatch = [0, None]
         for wafname, wafsign in wafsigns.items():
@@ -230,12 +274,12 @@ def wafDetector(domain):
             if total_score > bmatch[0]:
                 del bmatch[:]
                 bmatch.extend([total_score, wafname])
+
         if bmatch[0] != 0:
             print(c.YELLOW + bmatch[1] + c.END)
         else:
             print(c.YELLOW + "WAF not detected or doesn't exists" + c.END)
     else:
-        print(response.url)
         print(c.YELLOW + "An error has ocurred or unable to enumerate" + c.END)
 
     try:
@@ -247,10 +291,50 @@ def wafDetector(domain):
 def crawlMails(domain, api_token):
 
     print(c.BLUE + "\n[" + c.GREEN + "+" + c.BLUE + "] Crawling valid email accounts" + c.END)
+
+    """
+    Use the api of proxycrawl to with your token to get valid emails
+    """
+
     api_url = f"""https://api.proxycrawl.com/leads?token={api_token}&domain={domain}"""
     r = requests.get(api_url)
     print()
     print(c.YELLOW + r.text + c.END)
+
+# Function to check subdomain takeover
+def subTakeover(all_subdomains):
+
+    """
+    Iterate through all the subdomains to check if anyone is vulnerable to subdomain takeover
+    """
+    
+    vuln_counter = 0
+    print(c.BLUE + "\n[" + c.GREEN + "+" + c.BLUE + "] Checking if any subdomain is vulnerable to takeover\n" + c.END)
+    sleep(1)
+    
+    for subdom in all_subdomains:
+        try:
+            sleep(0.05)
+            resquery = dns.resolver.query(subdom, 'CNAME')
+            
+            for resdata in resquery:
+                resdata = (resdata.to_text())
+                
+                if subdom[-8:] in resdata:
+                    r = requests.get("https://" + subdom, allow_redirects=False)
+    
+                    if r.status_code == 200:
+                        vuln_counter += 1
+                        print(c.YELLOW + subdom + " appears to be vulnerable" + c.END)
+
+                else:
+                    pass
+
+        except:
+            pass
+    
+    if vuln_counter <= 0:
+        print(c.YELLOW + "Any subdomain is vulnerable\n" + c.END)
 
 # Main Domain Discoverer Function
 def SDom(domain,filename):
@@ -258,10 +342,15 @@ def SDom(domain,filename):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Discovering valid subdomains...\n" + c.END)
     sleep(0.1)
 
+    """
+    Get valid subdomains with a request to crt.sh
+    """
+
     r = requests.get("https://crt.sh/?q=" + domain + "&output=json", timeout=20)
     formatted_json = json.dumps(json.loads(r.text), indent=4)
     domains = re.findall(r'"common_name": "(.*?)"', formatted_json)
 
+    global doms
     doms = []
 
     raw_doms = sorted(set(domains))
@@ -273,7 +362,11 @@ def SDom(domain,filename):
         f = open(filename, "a")
     
     if domains:
-        # Print the domains in a table format depending the domain length
+
+        """
+        Iterate through the subdomains and check the lenght to print them in a table format
+        """
+
         print(c.YELLOW + "+" + "-"*39 + "+")
         for value in doms:
             if not value.startswith('*' + "." + domain):
@@ -327,7 +420,7 @@ if __name__ == '__main__':
 
     # Check domain format
     if "." not in parse.domain:
-        print("\nInvalid domain format, example: domain.com")
+        print(c.YELLOW + "\nInvalid domain format, example: domain.com\n" + c.END)
         sys.exit(0)
 
     # If --output is passed
@@ -337,7 +430,9 @@ if __name__ == '__main__':
     else:
         filename = None
 
-    # Check passed enumeration parameters
+    """
+    If --all is passed do all enumeration processes
+    """
     if parse.domain and parse.all:
         domain = parse.domain
         if domain.startswith('https://'):
@@ -346,56 +441,75 @@ if __name__ == '__main__':
         if domain.startswith('http://'):
             domain = domain.split('http://')[1]
 
-        SDom(domain,filename)
-        axfr(domain)
-        mail_enum(domain)
-        ns_enum(domain)
-        ip_enum(domain)
-        ipv6_enum(domain)
-        txt_enum(domain)
-        wafDetector(domain)
+        try:
+            SDom(domain,filename)
+            axfr(domain)
+            mail_enum(domain)
+            ns_enum(domain)
+            ip_enum(domain)
+            ipv6_enum(domain)
+            txt_enum(domain)
+            wafDetector(domain)
+            subTakeover(doms)
 
-        if parse.token:
-            crawlMails(domain, parse.token)
-        else:
-            print(c.BLUE + "\n[" + c.GREEN + "-" + c.BLUE + "] No API token provided, skipping crawling" + c.END)
+            if parse.token:
+                crawlMails(domain, parse.token)
+            else:
+                print(c.BLUE + "\n[" + c.GREEN + "-" + c.BLUE + "] No API token provided, skipping crawling" + c.END)
+
+        except KeyboardInterrupt:
+            sys.exit(c.RED + "\n[!] Interrupt handler received, exiting...\n" + c.END)
 
         sys.exit(0)
 
+    """
+    Enter in this part if the --all isn't passed
+    """
     if parse.domain:
+
         domain = parse.domain
+
         if domain.startswith('https://'):
             domain = domain.split('https://')[1]
 
         if domain.startswith('http://'):
             domain = domain.split('http://')[1]
+        
+        try:
+            SDom(domain,filename)
+    
+            """
+            Check the passed arguments via command line
+            """
 
-        SDom(domain,filename)
+            if parse.axfr:
+                axfr(domain)
+    
+            if parse.mail:
+                mail_enum(domain)
 
-        if parse.axfr:
-            axfr(domain)
+            if parse.nameservers:
+                ns_enum(domain)
 
-        if parse.mail:
-            mail_enum(domain)
+            if parse.ip:
+                ip_enum(domain)
 
-        if parse.nameservers:
-            ns_enum(domain)
+            if parse.ipv6:
+                ipv6_enum(domain)
 
-        if parse.ip:
-            ip_enum(domain)
+            if parse.extra:
+                txt_enum(domain)
+    
+            if parse.waf:
+                wafDetector(domain)
+    
+            if parse.subtakeover:
+                subTakeover(doms)
 
-        if parse.ipv6:
-            ipv6_enum(domain)
-
-        if parse.extra:
-            txt_enum(domain)
-
-        if parse.waf:
-            wafDetector(domain)
-
-        if parse.token:
-            crawlMails(domain, parse.token)
-
-        sys.exit(0)
+            if parse.token:
+                crawlMails(domain, parse.token)
+    
+        except KeyboardInterrupt:
+            sys.exit(c.RED + "\n[!] Interrupt handler received, exiting...\n" + c.END)
 
 
