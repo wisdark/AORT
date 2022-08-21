@@ -56,6 +56,12 @@ python3 SDomDiscover.py -d domain.com --all
 
 :ballot_box_with_check: A lot of extra queries to enumerate the DNS port
 
+:ballot_box_with_check: WAF detection and enumerate type
+
+:ballot_box_with_check: Subdomain Takeover checker
+
+:ballot_box_with_check: Email discovery with Proxycrawl support with API TOKEN
+
 ## Demo:
 
 > Simple query to find valid subdomains
