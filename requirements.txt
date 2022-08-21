@@ -1,7 +1,5 @@
 requests
 pydig
 dnspython
-warnings
 urllib3
-ssl
 argparse
