@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/D3Ext/SDomDiscover/main/SDomDiscover.png" width=1100 height=500>
+<img src="https://raw.githubusercontent.com/D3Ext/SDomDiscover/main/pic.png" width=1100 height=500>
 
 `A easy-to-use python tool to perform dns recon with multiple options`
 
