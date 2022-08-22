@@ -67,13 +67,15 @@ python3 SDomDiscover.py -d domain.com --all
 > Simple query to find valid subdomains
 <img src="https://raw.githubusercontent.com/D3Ext/SDomDiscover/main/demo.png">
 
-## Third part utils
+## Third part
 
 The tool uses crt.sh to get subdomains abusing ssl transparency
 
 The WAF detector was modified and addapted from [CRLFSuite](https://github.com/Nefcore/CRLFsuite) concept
 
 Email harvesting using Proxycrawl API with personal token (you can register a free account with 100 uses)
+
+## Extra
 
 **If you consider this project has been useful, I would really appreciate supporting me by giving this repo a star or buying me a coffee.**
 
