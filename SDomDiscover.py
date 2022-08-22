@@ -62,9 +62,11 @@ def parseArgs():
     p.add_argument("-i", "--ip", help="it reports the ip or ips of the domain", action='store_true', required=False)
     p.add_argument("-w", "--waf", help="discover the WAF of the domain main page", action='store_true', required=False)
     p.add_argument("-s", "--subtakeover", help="check if any of the subdomains are vulnerable to Subdomain Takeover", action='store_true', required=False)
+    p.add_argument("-r", "--repos", help="try to discover valid repositories and s3 servers of the domain", action='store_true', required=False)
     p.add_argument('-6', '--ipv6', help="enumerate the ipv6 of the domain", action='store_true', required=False)
     p.add_argument('-t', '--token', help="api token of https://proxycrawl.com to crawl email accounts", required=False)
     p.add_argument("-o", "--output", help="file to store the scan output", required=False)
+    p.add_argument("--osint", help="perform OSINT to find some valid accounts in different applications", action='store_true', required=False)
     p.add_argument("--all", help="perform all the enumeration at once", action='store_true', required=False)
     p.add_argument("--version", help="display the script version", action='store_true', required=False)
 
@@ -171,10 +173,8 @@ def axfr(domain):
 
     ns_answer = dns.resolver.resolve(domain, 'NS')
     for server in ns_answer:
-        print(c.YELLOW + "Found NS: {}".format(server) + c.END)
         ip_answer = dns.resolver.resolve(server.target, 'A')
         for ip in ip_answer:
-            print(c.YELLOW + "IP for {} is {}".format(server, ip) + c.END)
             try:
                 zone = dns.zone.from_xfr(dns.query.xfr(str(ip), domain))
                 for host in zone:
@@ -290,7 +290,9 @@ def crawlMails(domain, api_token):
     """
 
     api_url = f"""https://api.proxycrawl.com/leads?token={api_token}&domain={domain}"""
+
     r = requests.get(api_url)
+    
     print()
     print(c.YELLOW + r.text + c.END)
 
@@ -329,6 +331,57 @@ def subTakeover(all_subdomains):
     if vuln_counter <= 0:
         print(c.YELLOW + "Any subdomain is vulnerable" + c.END)
 
+# Function to enumerate github and cloud
+def cloudgitEnum(domain):
+
+    print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Finding valid git repositories or accounts\n" + c.END)
+
+    """
+    Check if an github account or a repositorythe same name exists 
+    """
+
+    r = requests.get("https://" + domain + "/.git")
+    if r.status_code == 200 or r.status_code == 403 or r.status_code == 500:
+        print(c.YELLOW + "Git repository found: https://" + domain + "/.git" + c.END)
+
+    r = requests.get("https://github.com/" + domain.split(".")[0])
+    if r.status_code == 200:
+        print(c.YELLOW + "Github account found: https://github.com/" + domain.split(".")[0] + c.END)
+
+    r = requests.get("https://gitlab.com/" + domain.split(".")[0])
+    if r.status_code == 200:
+        print(c.YELLOW + "Gitlab account found: https://gitlab.com/" + domain.split(".")[0] + c.END)
+
+# Function to check valid accounts on different platforms
+def osint(domain):
+    
+    print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Searching valid accounts associated to the domain (social networks and more)\n" + c.END)
+    
+    """
+    URLs array
+    """
+
+    osint_urls = ["https://twitter.com/{}","https://www.instagram.com/{}/","https://www.facebook.com/{}","https://pypi.org/user/{}","https://about.me/{}","https://www.airliners.net/user/{}/profile/photos","https://bitbucket.org/{}/","https://buymeacoff.ee/{}","https://www.chess.com/member/{}","https://www.clubhouse.com/@{}","https://dev.to/{}","https://www.dailymotion.com/{}","https://hub.docker.com/u/{}/","https://www.duolingo.com/profile/{}","https://www.fandom.com/u/{}","https://www.fiverr.com/{}","https://flipboard.com/@{}","https://www.freelancer.com/u/{}","http://en.gravatar.com/{}","https://hackerearth.com/@{}","https://hackerone.com/{}","https://imgur.com/user/{}","https://launchpad.net/~{}","https://leetcode.com/{}","https://medium.com/@{}","https://api.mojang.com/users/profiles/minecraft/{}","https://myspace.com/{}","https://notabug.org/{}","https://onlyfans.com/{}","https://pastebin.com/u/{}","https://www.patreon.com/{}","https://www.reddit.com/user/{}","https://www.snapchat.com/add/{}","https://sourceforge.net/u/{}","https://t.me/{}","https://tiktok.com/@{}","https://www.twitch.tv/{}","https://vsco.co/{}","https://vimeo.com/{}","https://www.virustotal.com/ui/users/{}/trusted_users"]
+
+    valid_counter = 0
+
+    for url in osint_urls:
+
+        r = requests.get((url).format(domain.split(".")[0]), allow_redirects=True)
+
+        if r.status_code == 200 and "not found" not in r.text and "Sorry, nobody" not in r.text and "Sorry, this" not in r.text and "Error 404" not in r.text and "doesn’t exist" not in r.text and "Page Not Found" not in r.text and "this page is not available" not in r.text:
+
+            valid_counter += 1
+
+            if valid_counter == 1:
+                print(c.YELLOW + "Valid accounts" + c.END)
+                print(c.YELLOW + "-------------" + c.END)
+
+            print(c.YELLOW + (url).format(domain.split(".")[0]) + c.END)
+
+    if valid_counter <= 0:
+        print(c.YELLOW + "Any account found" + c.END)
+
 # Main Domain Discoverer Function
 def SDom(domain,filename):
     banner()
@@ -362,7 +415,7 @@ def SDom(domain,filename):
 
         print(c.YELLOW + "+" + "-"*39 + "+")
         for value in doms:
-            if not value.startswith('*' + "." + domain):
+            if value.endswith("." + domain):
     
                 if len(value) >= 10 and len(value) <= 14:
                     l = len(value)
@@ -441,8 +494,10 @@ if __name__ == '__main__':
             ip_enum(domain)
             ipv6_enum(domain)
             txt_enum(domain)
+            cloudgitEnum(domain)
             wafDetector(domain)
             subTakeover(doms)
+            osint(domain)
 
             if parse.token:
                 crawlMails(domain, parse.token)
@@ -491,12 +546,18 @@ if __name__ == '__main__':
 
             if parse.extra:
                 txt_enum(domain)
-    
+
+            if parse.repos:
+                cloudgitEnum(domain)
+
             if parse.waf:
                 wafDetector(domain)
     
             if parse.subtakeover:
                 subTakeover(doms)
+
+            if parse.osint:
+                osint(domain)
 
             if parse.token:
                 crawlMails(domain, parse.token)
