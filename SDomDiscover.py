@@ -53,7 +53,7 @@ def banner():
 # Argument parser Function
 def parseArgs():
 
-    p = argparse.ArgumentParser(description="SDomDiscover - Silent Domain Discoverer - Abusing SSL transparency")
+    p = argparse.ArgumentParser(description="SDomDiscover - Stealthy subdomain finder and much more")
     p.add_argument("-d", "--domain", help="domain to search its subdomains", required=True)
     p.add_argument("-a", "--axfr", help="try a domain zone transfer attack", action='store_true', required=False)
     p.add_argument("-m", "--mail", help="try to enumerate mail servers", action='store_true', required=False)
