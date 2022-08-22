@@ -70,6 +70,7 @@ python3 SDomDiscover.py -d domain.com --all
 ## Third part utils
 
 The tool uses crt.sh to get subdomains abusing ssl transparency
+
 The WAF detector was modified and addapted from [CRLFSuite](https://github.com/Nefcore/CRLFsuite) concept
 
 **If you consider this project has been useful, I would really appreciate supporting me by giving this repo a star or buying me a coffee.**
