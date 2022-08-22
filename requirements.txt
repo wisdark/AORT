@@ -3,3 +3,4 @@ pydig
 dnspython
 urllib3
 argparse
+whois
