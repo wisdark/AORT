@@ -67,6 +67,11 @@ python3 SDomDiscover.py -d domain.com --all
 > Simple query to find valid subdomains
 <img src="https://raw.githubusercontent.com/D3Ext/SDomDiscover/main/demo.png">
 
+## Third part utils
+
+The tool uses crt.sh to get subdomains abusing ssl transparency
+The WAF detector was modified and addapted from [CRLFSuite](https://github.com/Nefcore/CRLFsuite) concept
+
 **If you consider this project has been useful, I would really appreciate supporting me by giving this repo a star or buying me a coffee.**
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/d3ext)
