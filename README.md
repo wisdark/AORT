@@ -62,6 +62,8 @@ python3 SDomDiscover.py -d domain.com --all
 
 :ballot_box_with_check: Subdomain Takeover checker
 
+:ballot_box_with_check: Wayback machine support to enumerate endpoints
+
 :ballot_box_with_check: Email harvesting
 
 ## Demo:
