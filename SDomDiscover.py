@@ -11,10 +11,11 @@ try:
     import dns.zone
     import dns.resolver
     import pydig
-    from time import sleep
+    import time
     import os
     import urllib3
     import pdb
+
 except:
     print(c.YELLOW + "\n[" + c.RED + "-" + c.YELLOW + "] ERROR requirements missing try to install the requirements: pip3 install -r requirements.txt" + c.END)
     sys.exit(0)
@@ -67,7 +68,8 @@ def parseArgs():
     p.add_argument('-t', '--token', help="api token of https://proxycrawl.com to crawl email accounts", required=False)
     p.add_argument("-o", "--output", help="file to store the scan output", required=False)
     p.add_argument("--osint", help="perform OSINT to find some valid accounts in different applications", action='store_true', required=False)
-    p.add_argument("--all", help="perform all the enumeration at once", action='store_true', required=False)
+    p.add_argument("--wayback", help="find useful information about the domain and his different endpoints using The Wayback Machine", action="store_true", required=False)
+    p.add_argument("--all", help="perform all the above options at once", action='store_true', required=False)
     p.add_argument("--version", help="display the script version", action='store_true', required=False)
 
     return p.parse_args()
@@ -75,7 +77,7 @@ def parseArgs():
 # Nameservers Function 
 def ns_enum(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Trying to discover valid name servers...\n" + c.END)
-    sleep(0.2)
+    time.sleep(0.2)
 
     """
     Query to get NS of the domain
@@ -94,7 +96,7 @@ def ns_enum(domain):
 # IPs discover Function
 def ip_enum(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Discovering IPs of the domain...\n" + c.END)
-    sleep(0.2)
+    time.sleep(0.2)
 
     """
     Query to get ips
@@ -111,7 +113,7 @@ def ip_enum(domain):
 # Extra DNS info Function
 def txt_enum(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Enumerating extra DNS information...\n" + c.END)
-    sleep(0.2)
+    time.sleep(0.2)
 
     """
     Query to get extra info about the dns
@@ -128,7 +130,7 @@ def txt_enum(domain):
 # Function to discover the IPv6 of the target
 def ipv6_enum(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Getting ipv6 of the domain...\n" + c.END)
-    sleep(0.2)
+    time.sleep(0.2)
 
     """
     Query to get ipv6
@@ -145,7 +147,7 @@ def ipv6_enum(domain):
 # Mail servers Function
 def mail_enum(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Finding valid mail servers...\n" + c.END)
-    sleep(0.2)
+    time.sleep(0.2)
 
     """
     Query to get mail servers
@@ -165,7 +167,7 @@ def mail_enum(domain):
 # Domain Zone Transfer Attack Function
 def axfr(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Starting Domain Zone Transfer attack...\n" + c.END)
-    sleep(0.2)
+    time.sleep(0.2)
 
     """
     Iterate through the name servers and try an AXFR attack on everyone
@@ -199,7 +201,7 @@ def wafDetector(domain):
         wafsigns = json.load(file)
 
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Discovering active WAF on the main web page...\n" + c.END)
-    sleep(1)
+    time.sleep(1)
     
     """
     Payload to trigger the possible WAF
@@ -305,11 +307,11 @@ def subTakeover(all_subdomains):
     
     vuln_counter = 0
     print(c.BLUE + "\n[" + c.GREEN + "+" + c.BLUE + "] Checking if any subdomain is vulnerable to takeover\n" + c.END)
-    sleep(1)
+    time.sleep(1)
     
     for subdom in all_subdomains:
         try:
-            sleep(0.05)
+            time.sleep(0.05)
             resquery = dns.resolver.resolve(subdom, 'CNAME')
             
             for resdata in resquery:
@@ -382,11 +384,47 @@ def osint(domain):
     if valid_counter <= 0:
         print(c.YELLOW + "Any account found" + c.END)
 
+# Wayback Machine function
+def wayback(domain):
+
+    print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Using The Wayback Machine to discover endpoints" + c.END)
+
+    """
+    URL to query info
+    """
+
+    wayback_url = f"http://web.archive.org/cdx/search/cdx?url=*.{domain}/*&output=json&fl=original&collapse=urlkey"
+    
+    """
+    Get information in an array
+    """
+    r = requests.get(wayback_url, timeout=20)
+    results = r.json()
+    results = results[1:]
+
+    domain_name = domain.split(".")[0]
+
+    try:
+        os.remove(f"{domain_name}-wayback.txt")
+    except:
+        pass
+
+    for result in results:
+
+        """
+        Save data to a file
+        """
+
+        file = open(f"{domain_name}-wayback.txt", "a")
+        file.write(result[0] + "\n")
+
+    print(c.YELLOW + f"\nInformation stored in {domain_name}-wayback.txt" + c.END)
+
 # Main Domain Discoverer Function
 def SDom(domain,filename):
     banner()
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Discovering valid subdomains...\n" + c.END)
-    sleep(0.1)
+    time.sleep(0.1)
 
     """
     Get valid subdomains with a request to crt.sh
@@ -497,6 +535,7 @@ if __name__ == '__main__':
             cloudgitEnum(domain)
             wafDetector(domain)
             subTakeover(doms)
+            wayback(domain)
             osint(domain)
 
             if parse.token:
@@ -555,6 +594,9 @@ if __name__ == '__main__':
     
             if parse.subtakeover:
                 subTakeover(doms)
+
+            if parse.wayback:
+                wayback(domain)
 
             if parse.osint:
                 osint(domain)
