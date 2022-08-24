@@ -2,6 +2,8 @@
 
 `A easy-to-use python tool to perform dns recon with multiple options`
 
+The purpouse of this tool is helping bug bounters and pentester during recognizement
+
 If you want to know more about the tool you can read my own [post](https://d3ext.github.io/sdomdiscover) in my blog   
 
 ## Installation:
