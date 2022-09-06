@@ -52,11 +52,11 @@ python3 SDomDiscover.py -d domain.com --all
 ```
 ## Features:
 
-:ballot_box_with_check: Dump valid subdomains 
+:ballot_box_with_check: Enumerate subdomains using passive techniques 
 
-:ballot_box_with_check: Store subdomains in a file
+:ballot_box_with_check: A lot of extra queries to enumerate the DNS
 
-:ballot_box_with_check: A lot of extra queries to enumerate the DNS port
+:ballot_box_with_check: Domain Zone trasnfer attack
 
 :ballot_box_with_check: WAF type detection
 
@@ -73,9 +73,11 @@ python3 SDomDiscover.py -d domain.com --all
 
 ## Third part
 
-The tool uses crt.sh to get subdomains abusing ssl transparency
+The tool uses different services to get subdomains in different ways
 
 The WAF detector was modified and addapted from [CRLFSuite](https://github.com/Nefcore/CRLFsuite) concept
+
+All DNS queries are scripted in python at 100%
 
 Email harvesting using Proxycrawl API with personal token (you can register a free account with 100 uses)
 
