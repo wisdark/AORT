@@ -2,12 +2,12 @@
 
 `A easy-to-use python tool to perform dns recon, subdomain enumeration and much more`
 
-The purpouse of this tool is helping bug bounters and pentester during reconnaissance
+The purpouse of this tool is helping bug haunters and pentesters during reconnaissance
 
-If you want to know more about the tool you can read my own [post](https://d3ext.github.io/aort) in my blog   
+If you want to know more about the tool you can read my own [post](https://d3ext.github.io/aort) in my blog (written in spanish) 
 
 ## Installation:
-It can be installed in any system with python3
+It can be used in any system with python3
 
 You can easily install AORT using pip:
 
