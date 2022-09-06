@@ -1,30 +1,30 @@
-<img src="https://raw.githubusercontent.com/D3Ext/SDomDiscover/main/pic.png" width=1100 height=500>
+# All in One Recon Tool
 
-`A easy-to-use python tool to perform dns recon with multiple options`
+`A easy-to-use python tool to perform dns recon, subdomain enumeration and much more`
 
 The purpouse of this tool is helping bug bounters and pentester during recognizement
 
-If you want to know more about the tool you can read my own [post](https://d3ext.github.io/sdomdiscover) in my blog   
+If you want to know more about the tool you can read my own [post](https://d3ext.github.io/aort) in my blog   
 
 ## Installation:
 It can be installed in any system with python3
 
-You can easily install SDomDiscover using pip:
+You can easily install AORT using pip:
 
 ```sh
-pip3 install sdomdiscover
+pip3 install aort
 ```
 
 If you want to install it from source:
 ```sh
-git clone https://github.com/D3Ext/SDomDiscover
-cd SDomDiscover
+git clone https://github.com/D3Ext/AORT
+cd AORT
 pip3 install -r requirements.txt
 ```
 
 > One-liner
 ```sh
-git clone https://github.com/D3Ext/SDomDiscover && cd SDomDiscover && pip3 install -r requirements.txt && python3 SDomDiscover.py
+git clone https://github.com/D3Ext/AORT && cd AORT && pip3 install -r requirements.txt && python3 AORT.py
 ```
 
 ## Usage:
@@ -33,22 +33,22 @@ git clone https://github.com/D3Ext/SDomDiscover && cd SDomDiscover && pip3 insta
 
 > If installed with pip3:
 ```sh
-sdomdiscover
+aort
 ```
 
 > To see the help panel and other parameters
 ```sh
-python3 SDomDiscover.py -h
+python3 AORT.py -h
 ```
 
 > Main usage of the tool to dump the valid domains in the SSL certificate 
 ```sh
-python3 SDomDiscover.py -d example.com
+python3 AORT.py -d example.com
 ```
 
 > Used to perform all the queries and recognizement
 ```sh
-python3 SDomDiscover.py -d domain.com --all
+python3 AORT.py -d domain.com --all
 ```
 ## Features:
 
@@ -69,7 +69,7 @@ python3 SDomDiscover.py -d domain.com --all
 ## Demo:
 
 > Simple query to find valid subdomains
-<img src="https://raw.githubusercontent.com/D3Ext/SDomDiscover/main/demo.png">
+<img src="https://raw.githubusercontent.com/D3Ext/AORT/main/demo.png">
 
 ## Third part
 
