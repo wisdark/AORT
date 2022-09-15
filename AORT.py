@@ -60,20 +60,21 @@ def parseArgs():
 
     p = argparse.ArgumentParser(description="AORT - All in One Recon Tool")
     p.add_argument("-d", "--domain", help="domain to search its subdomains", required=True)
+    p.add_argument("-o", "--output", help="file to store the scan output", required=False)
+    #p.add_argument("-p", "--portscan", help="perform a fast and stealthy scan of the most common ports", action='store_true', required=False)
     p.add_argument("-a", "--axfr", help="try a domain zone transfer attack", action='store_true', required=False)
     p.add_argument("-m", "--mail", help="try to enumerate mail servers", action='store_true', required=False)
     p.add_argument('-e', '--extra', help="look for extra dns information", action='store_true', required=False)
     p.add_argument("-n", "--nameservers", help="try to enumerate the name servers", action='store_true', required=False)
+    p.add_argument('-6', '--ipv6', help="enumerate the ipv6 of the domain", action='store_true', required=False)
     p.add_argument("-i", "--ip", help="it reports the ip or ips of the domain", action='store_true', required=False)
     p.add_argument("-w", "--waf", help="discover the WAF of the domain main page", action='store_true', required=False)
     p.add_argument("-s", "--subtakeover", help="check if any of the subdomains are vulnerable to Subdomain Takeover", action='store_true', required=False)
-    p.add_argument("-r", "--repos", help="try to discover valid repositories and s3 servers of the domain", action='store_true', required=False)
-    p.add_argument('-6', '--ipv6', help="enumerate the ipv6 of the domain", action='store_true', required=False)
+    p.add_argument("-r", "--repos", help="try to discover valid repositories and s3 servers of the domain (still improving it)", action='store_true', required=False)
     p.add_argument('-t', '--token', help="api token of https://proxycrawl.com to crawl email accounts", required=False)
-    p.add_argument("-o", "--output", help="file to store the scan output", required=False)
-    p.add_argument("--osint", help="perform OSINT to find some valid accounts in different applications", action='store_true', required=False)
+    #p.add_argument("--osint", help="perform OSINT to find some valid accounts in different applications", action='store_true', required=False)
     p.add_argument("--wayback", help="find useful information about the domain and his different endpoints using The Wayback Machine", action="store_true", required=False)
-    p.add_argument("--all", help="perform all the enumeration at once", action='store_true', required=False)
+    p.add_argument("--all", help="perform all the enumeration at once (best choice)", action='store_true', required=False)
     p.add_argument("--version", help="display the script version", action='store_true', required=False)
 
     return p.parse_args()
@@ -338,6 +339,8 @@ def subTakeover(all_subdomains):
                 else:
                     pass
 
+        except KeyboardInterrupt:
+            sys.exit(c.RED + "\n[!] Interrupt handler received, exiting...\n" + c.END)
         except:
             pass
     
@@ -355,7 +358,7 @@ def cloudgitEnum(domain):
 
     r = requests.get("https://" + domain + "/.git/")
     if r.status_code == 200 or r.status_code == 403 or r.status_code == 500:
-        print(c.YELLOW + "Git repository found: https://" + domain + "/.git/" + c.END)
+        print(c.YELLOW + "Git repository found: https://" + domain + "/.git/" + str(r.status_code) + c.END)
 
     r = requests.get("https://github.com/" + domain.split(".")[0])
     if r.status_code == 200:
@@ -409,10 +412,15 @@ def wayback(domain):
     """
     Get information in an array
     """
-    r = requests.get(wayback_url, timeout=20)
-    results = r.json()
-    results = results[1:]
-
+    try:
+        r = requests.get(wayback_url, timeout=20)
+        results = r.json()
+        results = results[1:]
+    except KeyboardInterrupt:
+        sys.exit(c.RED + "\n[!] Interrupt handler received, exiting...\n" + c.END)
+    except:
+        pass
+        
     domain_name = domain.split(".")[0]
 
     try:
@@ -447,72 +455,90 @@ def SDom(domain,filename):
     """
     Get valid subdomains with a request to crt.sh
     """
-
     try:
         r = requests.get("https://crt.sh/?q=" + domain + "&output=json", timeout=30)
         formatted_json = json.dumps(json.loads(r.text), indent=4)
         crt_domains = sorted(set(re.findall(r'"common_name": "(.*?)"', formatted_json)))
+
+        # Only append new valid subdomains
+        for dom in crt_domains:
+            if dom.endswith(domain) and dom not in doms:
+                doms.append(dom)
+
+    except KeyboardInterrupt:
+        sys.exit(c.RED + "\n[!] Interrupt handler received, exiting...\n" + c.END)
     except:
-        print(c.YELLOW + "An error has ocurred, try again" + c.END)
-        sys.exit(0)
-
-    # Only append new valid subdomains
-    for dom in crt_domains:
-        if dom.endswith(domain) and dom not in doms:
-            doms.append(dom)
-
+        pass
+              
     """
     Get subdomains from AlienVault
     """
+    try:
+        r = requests.get(f"https://otx.alienvault.com/api/v1/indicators/domain/{domain}/passive_dns", timeout=30)
+        alienvault_domains = sorted(set(re.findall(r'"hostname": "(.*?)"', r.text)))
 
-    r = requests.get(f"https://otx.alienvault.com/api/v1/indicators/domain/{domain}/passive_dns", timeout=30)
-    alienvault_domains = sorted(set(re.findall(r'"hostname": "(.*?)"', r.text)))
-
-    # Only append new valid subdomains
-    for dom in alienvault_domains:
-        if dom.endswith(domain) and dom not in doms:
-            doms.append(dom)
-
+        # Only append new valid subdomains
+        for dom in alienvault_domains:
+            if dom.endswith(domain) and dom not in doms:
+                doms.append(dom)
+    
+    except KeyboardInterrupt:
+        sys.exit(c.RED + "\n[!] Interrupt handler received, exiting...\n" + c.END)
+    except:
+        pass
+                
     """
     Get subdomains from Hackertarget
     """
-
-    r = requests.get(f"https://api.hackertarget.com/hostsearch/?q={domain}", timeout=30)
-    hackertarget_domains = re.findall(r'(.*?),', r.text)
-    
-    # Only append new valid subdomains
-    for dom in hackertarget_domains:
-        if dom.endswith(domain) and dom not in doms:
-            doms.append(dom)
-
+    try:
+        r = requests.get(f"https://api.hackertarget.com/hostsearch/?q={domain}", timeout=30)
+        hackertarget_domains = re.findall(r'(.*?),', r.text)
+        
+        # Only append new valid subdomains
+        for dom in hackertarget_domains:
+            if dom.endswith(domain) and dom not in doms:
+                doms.append(dom)
+                
+    except KeyboardInterrupt:
+        sys.exit(c.RED + "\n[!] Interrupt handler received, exiting...\n" + c.END)
+    except:
+        pass
+                
     """
     Get subdomains from RapidDNS
     """
+    try:
+        r = requests.get(f"https://rapiddns.io/subdomain/{domain}", timeout=30)
+        rapiddns_domains = re.findall(r'target="_blank".*?">(.*?)</a>', r.text)
 
-    r = requests.get(f"https://rapiddns.io/subdomain/{domain}", timeout=30)
-    rapiddns_domains = re.findall(r'target="_blank".*?">(.*?)</a>', r.text)
-
-    # Only append new valid subdomains
-    for dom in rapiddns_domains:
-        if dom.endswith(domain) and dom not in doms:
-            doms.append(dom)
-
+        # Only append new valid subdomains
+        for dom in rapiddns_domains:
+            if dom.endswith(domain) and dom not in doms:
+                doms.append(dom)
+                
+    except KeyboardInterrupt:
+        sys.exit(c.RED + "\n[!] Interrupt handler received, exiting...\n" + c.END)
+    except:
+        pass
     """
     Get subdomains from Riddler
     """
+    try:
+        r = requests.get(f"https://riddler.io/search/exportcsv?q=pld:{domain}", timeout=30)
+        riddler_domains = re.findall(r'\[.*?\]",.*?,(.*?),\[', r.text)
 
-    r = requests.get(f"https://riddler.io/search/exportcsv?q=pld:{domain}", timeout=30)
-    riddler_domains = re.findall(r'\[.*?\]",.*?,(.*?),\[', r.text)
-
-    # Only append new valid subdomains
-    for dom in riddler_domains:
-        if dom.endswith(domain) and dom not in doms:
-            doms.append(dom)
-
+        # Only append new valid subdomains
+        for dom in riddler_domains:
+            if dom.endswith(domain) and dom not in doms:
+                doms.append(dom)
+                
+    except KeyboardInterrupt:
+        sys.exit(c.RED + "\n[!] Interrupt handler received, exiting...\n" + c.END)
+    except:
+        pass
     """
     Get subdomains from ThreatMiner
     """
-
     try:
         r = requests.get(f"https://api.threatminer.org/v2/domain.php?q={domain}&rt=5", timeout=30)
         raw_domains = json.loads(r.content)
@@ -522,22 +548,29 @@ def SDom(domain,filename):
         for dom in threatminer_domains:
             if dom.endswith(domain) and dom not in doms:
                 doms.append(dom)
+    except KeyboardInterrupt:
+        sys.exit(c.RED + "\n[!] Interrupt handler received, exiting...\n" + c.END)
     except:
         pass
 
     """
     Get subdomains from URLScan
     """
-
-    r = requests.get(f"https://urlscan.io/api/v1/search/?q={domain}", timeout=30)
-    urlscan_domains = sorted(set(re.findall(r'https://(.*?).hackthebox.com', r.text)))
+    try:
+        r = requests.get(f"https://urlscan.io/api/v1/search/?q={domain}", timeout=30)
+        urlscan_domains = sorted(set(re.findall(r'https://(.*?).' + domain, r.text)))
     
-    # Only append new valid subdomains
-    for dom in urlscan_domains:
-        dom = dom + "." + domain
-        if dom.endswith(domain) and dom not in doms:
-            doms.append(dom)
-
+        # Only append new valid subdomains
+        for dom in urlscan_domains:
+            dom = dom + "." + domain
+            if dom.endswith(domain) and dom not in doms:
+                doms.append(dom)
+                
+    except KeyboardInterrupt:
+        sys.exit(c.RED + "\n[!] Interrupt handler received, exiting...\n" + c.END)
+    except:
+        pass
+                
     if filename != None:
         f = open(filename, "a")
     
@@ -589,19 +622,18 @@ def SDom(domain,filename):
         """
         Print summary
         """
-
         print("+" + "-"*47 + "+" + c.END)
         print(c.YELLOW + "\nTotal discovered sudomains: " + str(len(doms)) + c.END)
 
         """
-        Close file if has value
+        Close file if "-o" parameter was especified
         """
 
         if filename != None:
             f.close()
             print(c.BLUE + "\n[" + c.GREEN + "+" + c.BLUE + "] Output stored in " + filename)
     else:
-        print(c.YELLOW + "Any subdomains discovered through SSL transparency" + c.END)
+        print(c.YELLOW + "Any subdomain discovered through SSL transparency" + c.END)
 
 # Program workflow starts here
 if __name__ == '__main__':
@@ -641,6 +673,7 @@ if __name__ == '__main__':
 
         try:
             SDom(domain,filename)
+            #portScan(domain)
             ns_enum(domain)
             axfr(domain)
             mail_enum(domain)
@@ -683,6 +716,9 @@ if __name__ == '__main__':
             Check the passed arguments via command line
             """
 
+            #if parse.ports:
+                #portScan(domain)
+        
             if parse.nameservers:
                 ns_enum(domain)
 
