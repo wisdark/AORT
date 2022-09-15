@@ -52,7 +52,7 @@ python3 AORT.py -d domain.com --all
 ```
 ## Features:
 
-:ballot_box_with_check: Enumerate subdomains using passive techniques 
+:ballot_box_with_check: Enumerate subdomains using passive techniques (like **subfinder**)
 
 :ballot_box_with_check: A lot of extra queries to enumerate the DNS
 
@@ -64,9 +64,9 @@ python3 AORT.py -d domain.com --all
 
 :ballot_box_with_check: Scan common ports
 
-:ballot_box_with_check: Check active subdomains
+:ballot_box_with_check: Check active subdomains (like **httprobe**)
 
-:ballot_box_with_check: Wayback machine support to enumerate endpoints
+:ballot_box_with_check: Wayback machine support to enumerate endpoints (like **waybackurls**)
 
 :ballot_box_with_check: Email harvesting
 
