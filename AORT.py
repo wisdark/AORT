@@ -358,7 +358,7 @@ def cloudgitEnum(domain):
 
     r = requests.get("https://" + domain + "/.git/")
     if r.status_code == 200 or r.status_code == 403 or r.status_code == 500:
-        print(c.YELLOW + "Git repository found: https://" + domain + "/.git/" + str(r.status_code) + c.END)
+        print(c.YELLOW + "Git repository found: https://" + domain + "/.git/ " + str(r.status_code) + c.END)
 
     r = requests.get("https://github.com/" + domain.split(".")[0])
     if r.status_code == 200:
