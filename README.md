@@ -1,8 +1,8 @@
 # All in One Recon Tool
 
-`A easy-to-use python tool to perform dns recon, subdomain enumeration and much more`
+`An easy-to-use python tool to perform dns recon, subdomain enumeration and much more`
 
-The purpouse of this tool is helping bug haunters and pentesters during reconnaissance
+The purpouse of this tool is helping bug hunters and pentesters during reconnaissance
 
 If you want to know more about the tool you can read my own [post](https://d3ext.github.io/aort) in my blog (written in spanish) 
 
@@ -29,7 +29,7 @@ git clone https://github.com/D3Ext/AORT && cd AORT && pip3 install -r requiremen
 
 ## Usage:
 
-> Common usages
+- Common usages
 
 > If installed with pip3:
 ```sh
@@ -41,12 +41,12 @@ aort
 python3 AORT.py -h
 ```
 
-> Main usage of the tool to dump the valid domains in the SSL certificate 
+> Main usage of the tool to dump the valid domains
 ```sh
 python3 AORT.py -d example.com
 ```
 
-> Used to perform all the queries and recognizement
+> Perform all the recon
 ```sh
 python3 AORT.py -d domain.com --all
 ```
@@ -56,11 +56,15 @@ python3 AORT.py -d domain.com --all
 
 :ballot_box_with_check: A lot of extra queries to enumerate the DNS
 
-:ballot_box_with_check: Domain Zone trasnfer attack
+:ballot_box_with_check: Domain Zone transfer attack
 
 :ballot_box_with_check: WAF type detection
 
 :ballot_box_with_check: Subdomain Takeover checker
+
+:ballot_box_with_check: Scan common ports
+
+:ballot_box_with_check: Check active subdomains
 
 :ballot_box_with_check: Wayback machine support to enumerate endpoints
 
