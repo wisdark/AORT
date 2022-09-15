@@ -161,10 +161,17 @@ def mail_enum(domain):
 
     if data:
         for mail_output in data:
-            mail_output = mail_output.split(' ')[1]
-            l = len(mail_output)
-            mail_servers = mail_output[:l-1]
-            print(c.YELLOW + mail_servers + c.END)
+            mail_data = []
+            mail_output = mail_output.split(' ')
+            if len(mail_output) == 1:
+                mail_servers = mail_output[0]
+                mail_data.append(mail_servers)
+            else:
+                mail_output = mail_output[1]
+                l = len(mail_output)
+                mail_servers = mail_output[:l-1]
+                mail_data.append(mail_servers)
+            print(c.YELLOW + mail_data[0] + c.END)
     else:
         print(c.YELLOW + "Unable to enumerate" + c.END)
 
