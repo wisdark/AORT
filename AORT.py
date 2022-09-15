@@ -10,10 +10,12 @@ try:
     import requests
     import sys
     import re
+    import socket
     import whois
     import json
     import argparse
     import dns.zone
+    import threading
     import dns.resolver
     import pydig
     from time import sleep
@@ -61,7 +63,8 @@ def parseArgs():
     p = argparse.ArgumentParser(description="AORT - All in One Recon Tool")
     p.add_argument("-d", "--domain", help="domain to search its subdomains", required=True)
     p.add_argument("-o", "--output", help="file to store the scan output", required=False)
-    #p.add_argument("-p", "--portscan", help="perform a fast and stealthy scan of the most common ports", action='store_true', required=False)
+    p.add_argument('-t', '--token', help="api token of https://proxycrawl.com to crawl email accounts", required=False)
+    p.add_argument("-p", "--portscan", help="perform a fast and stealthy scan of the most common ports", action='store_true', required=False)
     p.add_argument("-a", "--axfr", help="try a domain zone transfer attack", action='store_true', required=False)
     p.add_argument("-m", "--mail", help="try to enumerate mail servers", action='store_true', required=False)
     p.add_argument('-e', '--extra', help="look for extra dns information", action='store_true', required=False)
@@ -71,7 +74,6 @@ def parseArgs():
     p.add_argument("-w", "--waf", help="discover the WAF of the domain main page", action='store_true', required=False)
     p.add_argument("-s", "--subtakeover", help="check if any of the subdomains are vulnerable to Subdomain Takeover", action='store_true', required=False)
     p.add_argument("-r", "--repos", help="try to discover valid repositories and s3 servers of the domain (still improving it)", action='store_true', required=False)
-    p.add_argument('-t', '--token', help="api token of https://proxycrawl.com to crawl email accounts", required=False)
     #p.add_argument("--osint", help="perform OSINT to find some valid accounts in different applications", action='store_true', required=False)
     p.add_argument("--wayback", help="find useful information about the domain and his different endpoints using The Wayback Machine", action="store_true", required=False)
     p.add_argument("--all", help="perform all the enumeration at once (best choice)", action='store_true', required=False)
@@ -350,7 +352,7 @@ def subTakeover(all_subdomains):
 # Function to enumerate github and cloud
 def cloudgitEnum(domain):
 
-    print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Finding valid git repositories or accounts\n" + c.END)
+    print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Finding valid git repositories or services\n" + c.END)
 
     """
     Check if an github account or a repository the same name exists 
@@ -358,15 +360,23 @@ def cloudgitEnum(domain):
 
     r = requests.get("https://" + domain + "/.git/")
     if r.status_code == 200 or r.status_code == 403 or r.status_code == 500:
-        print(c.YELLOW + "Git repository found: https://" + domain + "/.git/ " + str(r.status_code) + c.END)
+        print(c.YELLOW + "Git repository found: https://" + domain + "/.git/ - " + str(r.status_code) + " status code" + c.END)
+
+    r = requests.get("https://" + domain + "/.dev/")
+    if r.status_code == 200 or r.status_code == 403 or r.status_code == 500:
+        print(c.YELLOW + "Git repository found: https://" + domain + "/.dev/ - " + str(r.status_code) + " status code" + c.END)
+
+    r = requests.get("https://" + domain + "/dev/")
+    if r.status_code == 200 or r.status_code == 403 or r.status_code == 500:
+        print(c.YELLOW + "Git repository found: https://" + domain + "/dev/ - " + str(r.status_code) + " status code" + c.END)
 
     r = requests.get("https://github.com/" + domain.split(".")[0])
     if r.status_code == 200:
-        print(c.YELLOW + "Github account found: https://github.com/" + domain.split(".")[0] + c.END)
+        print(c.YELLOW + "Github account found: https://github.com/" + domain.split(".")[0] + " - " + str(r.status_code) + " status code" + c.END)
 
     r = requests.get("https://gitlab.com/" + domain.split(".")[0])
     if r.status_code == 200:
-        print(c.YELLOW + "Gitlab account found: https://gitlab.com/" + domain.split(".")[0] + c.END)
+        print(c.YELLOW + "Gitlab account found: https://gitlab.com/" + domain.split(".")[0] + " - " + str(r.status_code) + " status code" + c.END)
 
 # Function to check valid accounts on different platforms
 def osint(domain):
@@ -442,6 +452,61 @@ def wayback(domain):
 #def createReport(domain):
 
     #file = open()
+
+# Function to thread when probing active subdomains
+def checkStatus(subdomain, file):
+
+    try:
+        r = requests.get("https://" + subdomain, timeout=2)
+
+        if r.status_code == 200 or r.status_code == 302 or r.status_code == 401:
+            file.write(subdomain + "\n")
+    except:
+        pass
+
+# Check status function
+def checkActiveSubs(domain,doms):
+
+    global file
+
+    domain_name = domain.split(".")[0]
+    file = open(f"{domain_name}-active-subs.txt", "w")
+
+    print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Probing active subdomains..." + c.END)
+
+    for subdomain in doms:
+        t = threading.Thread(target=checkStatus, args=(subdomain,file))
+        t.start()
+
+    sleep(2.5)
+
+    print(c.YELLOW + f"\nActive subdomains stored in {domain_name}-active-subs.txt" + c.END)
+
+# Check if common ports are open
+def portScan(domain):
+
+    print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Scanning most common ports on " + domain + "\n" + c.END)
+
+    """
+    Define ports array
+    """
+
+    ports = [21,22,23,25,43,53,69,80,88,110,389,443,445,636,873,2049,3000,3001,3306,5000,5001,5985,5986,8000,8001,8080,8081,27017]
+
+    """
+    Iterate through the ports to check if are open
+    """
+
+    for port in ports:
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(0.50)
+        result = sock.connect_ex((domain,port))
+    
+        if result == 0:
+            print(c.YELLOW + "Port " + str(port) + " - OPEN" + c.END)
+
+        sock.close()
 
 # Main Domain Discoverer Function
 def SDom(domain,filename):
@@ -649,8 +714,9 @@ if __name__ == '__main__':
     parse = parseArgs()
 
     # Check domain format
-    if "." not in parse.domain:
-        print(c.YELLOW + "\nInvalid domain format, example: domain.com\n" + c.END)
+    dom_format = parse.domain.split(".")
+    if len(dom_format) != 2:
+        print(c.YELLOW + "\nInvalid domain format, example: domain.com" + c.END)
         sys.exit(0)
 
     # If --output is passed
@@ -673,7 +739,7 @@ if __name__ == '__main__':
 
         try:
             SDom(domain,filename)
-            #portScan(domain)
+            portScan(domain)
             ns_enum(domain)
             axfr(domain)
             mail_enum(domain)
@@ -682,6 +748,7 @@ if __name__ == '__main__':
             txt_enum(domain)
             cloudgitEnum(domain)
             wafDetector(domain)
+            checkActiveSubs(domain,doms)
             wayback(domain)
             subTakeover(doms)
             #osint(domain)
@@ -689,7 +756,12 @@ if __name__ == '__main__':
             if parse.token:
                 crawlMails(domain, parse.token)
             else:
-                print(c.BLUE + "\n[" + c.GREEN + "-" + c.BLUE + "] No API token provided, skipping crawling" + c.END)
+                print(c.BLUE + "\n[" + c.GREEN + "-" + c.BLUE + "] No API token provided, skipping email crawling" + c.END)
+
+            try:
+                file.close()
+            except:
+                pass
 
         except KeyboardInterrupt:
             sys.exit(c.RED + "\n[!] Interrupt handler received, exiting...\n" + c.END)
@@ -716,8 +788,8 @@ if __name__ == '__main__':
             Check the passed arguments via command line
             """
 
-            #if parse.ports:
-                #portScan(domain)
+            if parse.ports:
+                portScan(domain)
         
             if parse.nameservers:
                 ns_enum(domain)
@@ -742,7 +814,7 @@ if __name__ == '__main__':
 
             if parse.waf:
                 wafDetector(domain)
-    
+
             if parse.wayback:
                 wayback(domain)
 
