@@ -788,7 +788,7 @@ if __name__ == '__main__':
             Check the passed arguments via command line
             """
 
-            if parse.ports:
+            if parse.portscan:
                 portScan(domain)
         
             if parse.nameservers:
