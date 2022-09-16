@@ -60,6 +60,8 @@ python3 AORT.py -d domain.com --all
 
 :ballot_box_with_check: WAF type detection
 
+:ballot_box_with_check: Common enumeration (CMSs, reverse proxies, jquery...)
+
 :ballot_box_with_check: Subdomain Takeover checker
 
 :ballot_box_with_check: Scan common ports
@@ -69,6 +71,10 @@ python3 AORT.py -d domain.com --all
 :ballot_box_with_check: Wayback machine support to enumerate endpoints (like **waybackurls**)
 
 :ballot_box_with_check: Email harvesting
+
+## Todo:
+
+- Compare results with other tools such as **subfinder**, **gau**, **httprobe**...
 
 ## Demo:
 
