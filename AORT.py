@@ -14,7 +14,10 @@ try:
     import whois
     import json
     import argparse
+    import platform
+    from Wappalyzer import Wappalyzer, WebPage
     import dns.zone
+    import warnings
     import threading
     import dns.resolver
     import pydig
@@ -57,6 +60,22 @@ def banner():
     print('         |==.___________.==|            ')
     print('         `==.___________.==\'           ' + c.END)
 
+    print(c.BLUE + "\nPython version: " + c.GREEN + platform.python_version() + c.END)
+    print(c.BLUE + "Current OS: " + c.GREEN + platform.system() + " " + platform.release() + c.END)
+
+    internet_check = socket.gethostbyname(socket.gethostname())
+
+    if internet_check == "127.0.0.1":
+        if platform.system() == "Windows":
+            print(c.BLUE + "Internet connection: " + c.RED + "-" + c.END)
+        else:
+            print(c.BLUE + "Internet connection: " + c.RED + "✕" + c.END)
+    else:
+        if platform.system() == "Windows":
+            print(c.BLUE + "Internet connection: " + c.GREEN + "+" + c.END)
+        else:
+            print(c.BLUE + "Internet connection: " + c.GREEN + "✔" + c.END)
+
 # Argument parser Function
 def parseArgs():
 
@@ -69,12 +88,14 @@ def parseArgs():
     p.add_argument("-m", "--mail", help="try to enumerate mail servers", action='store_true', required=False)
     p.add_argument('-e', '--extra', help="look for extra dns information", action='store_true', required=False)
     p.add_argument("-n", "--nameservers", help="try to enumerate the name servers", action='store_true', required=False)
-    p.add_argument('-6', '--ipv6', help="enumerate the ipv6 of the domain", action='store_true', required=False)
     p.add_argument("-i", "--ip", help="it reports the ip or ips of the domain", action='store_true', required=False)
+    p.add_argument('-6', '--ipv6', help="enumerate the ipv6 of the domain", action='store_true', required=False)
     p.add_argument("-w", "--waf", help="discover the WAF of the domain main page", action='store_true', required=False)
     p.add_argument("-s", "--subtakeover", help="check if any of the subdomains are vulnerable to Subdomain Takeover", action='store_true', required=False)
     p.add_argument("-r", "--repos", help="try to discover valid repositories and s3 servers of the domain (still improving it)", action='store_true', required=False)
+    p.add_argument("-c", "--check", help="check active subdomains and store them into a file", action='store_true', required=False)
     #p.add_argument("--osint", help="perform OSINT to find some valid accounts in different applications", action='store_true', required=False)
+    p.add_argument("--enum", help="stealthily enumerate and identify common technologies", action='store_true', required=False)
     p.add_argument("--wayback", help="find useful information about the domain and his different endpoints using The Wayback Machine", action="store_true", required=False)
     p.add_argument("--all", help="perform all the enumeration at once (best choice)", action='store_true', required=False)
     p.add_argument("--version", help="display the script version", action='store_true', required=False)
@@ -364,11 +385,11 @@ def cloudgitEnum(domain):
 
     r = requests.get("https://" + domain + "/.dev/")
     if r.status_code == 200 or r.status_code == 403 or r.status_code == 500:
-        print(c.YELLOW + "Git repository found: https://" + domain + "/.dev/ - " + str(r.status_code) + " status code" + c.END)
+        print(c.YELLOW + "Possible dev directory found: https://" + domain + "/.dev/ - " + str(r.status_code) + " status code" + c.END)
 
     r = requests.get("https://" + domain + "/dev/")
     if r.status_code == 200 or r.status_code == 403 or r.status_code == 500:
-        print(c.YELLOW + "Git repository found: https://" + domain + "/dev/ - " + str(r.status_code) + " status code" + c.END)
+        print(c.YELLOW + "Possible dev directory found: https://" + domain + "/dev/ - " + str(r.status_code) + " status code" + c.END)
 
     r = requests.get("https://github.com/" + domain.split(".")[0])
     if r.status_code == 200:
@@ -459,7 +480,7 @@ def checkStatus(subdomain, file):
     try:
         r = requests.get("https://" + subdomain, timeout=2)
 
-        if r.status_code == 200 or r.status_code == 302 or r.status_code == 401:
+        if r.status_code == 200 or r.status_code == 302 or r.status_code == 301 or r.status_code == 401:
             file.write(subdomain + "\n")
     except:
         pass
@@ -469,16 +490,29 @@ def checkActiveSubs(domain,doms):
 
     global file
 
-    domain_name = domain.split(".")[0]
-    file = open(f"{domain_name}-active-subs.txt", "w")
-
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Probing active subdomains..." + c.END)
 
+    if len(doms) >= 100:
+        option = input(c.YELLOW + "\nThere are a lot of subdomains to check, (+100) do you want to check all of them [y/n]: " + c.END)
+        
+        if option == "n" or option == "no":
+            sleep(0.2)
+            return
+
+    """
+    Define filename
+    """
+    domain_name = domain.split(".")[0]
+    file = open(f"{domain_name}-active-subs.txt", "w")
+    
+    """
+    Iterate through all subdomains in threads
+    """
     for subdomain in doms:
         t = threading.Thread(target=checkStatus, args=(subdomain,file))
         t.start()
 
-    sleep(2.5)
+    sleep(4)
 
     print(c.YELLOW + f"\nActive subdomains stored in {domain_name}-active-subs.txt" + c.END)
 
@@ -508,6 +542,21 @@ def portScan(domain):
 
         sock.close()
 
+# Perform basic enumeration
+def basicEnum(domain):
+
+    print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Performing some basic enumeration...\n" + c.END)
+
+    """
+    Use python-Wappalyzer
+    """
+
+    wappalyzer = Wappalyzer.latest()
+    webpage = WebPage.new_from_url('https://' + domain)
+    info = wappalyzer.analyze_with_versions(webpage)
+
+    print(c.YELLOW + json.dumps(info, sort_keys=True, indent=4) + c.END)
+
 # Main Domain Discoverer Function
 def SDom(domain,filename):
     banner()
@@ -521,7 +570,7 @@ def SDom(domain,filename):
     Get valid subdomains with a request to crt.sh
     """
     try:
-        r = requests.get("https://crt.sh/?q=" + domain + "&output=json", timeout=30)
+        r = requests.get("https://crt.sh/?q=" + domain + "&output=json", timeout=20)
         formatted_json = json.dumps(json.loads(r.text), indent=4)
         crt_domains = sorted(set(re.findall(r'"common_name": "(.*?)"', formatted_json)))
 
@@ -539,7 +588,7 @@ def SDom(domain,filename):
     Get subdomains from AlienVault
     """
     try:
-        r = requests.get(f"https://otx.alienvault.com/api/v1/indicators/domain/{domain}/passive_dns", timeout=30)
+        r = requests.get(f"https://otx.alienvault.com/api/v1/indicators/domain/{domain}/passive_dns", timeout=20)
         alienvault_domains = sorted(set(re.findall(r'"hostname": "(.*?)"', r.text)))
 
         # Only append new valid subdomains
@@ -556,7 +605,7 @@ def SDom(domain,filename):
     Get subdomains from Hackertarget
     """
     try:
-        r = requests.get(f"https://api.hackertarget.com/hostsearch/?q={domain}", timeout=30)
+        r = requests.get(f"https://api.hackertarget.com/hostsearch/?q={domain}", timeout=20)
         hackertarget_domains = re.findall(r'(.*?),', r.text)
         
         # Only append new valid subdomains
@@ -573,7 +622,7 @@ def SDom(domain,filename):
     Get subdomains from RapidDNS
     """
     try:
-        r = requests.get(f"https://rapiddns.io/subdomain/{domain}", timeout=30)
+        r = requests.get(f"https://rapiddns.io/subdomain/{domain}", timeout=20)
         rapiddns_domains = re.findall(r'target="_blank".*?">(.*?)</a>', r.text)
 
         # Only append new valid subdomains
@@ -589,7 +638,7 @@ def SDom(domain,filename):
     Get subdomains from Riddler
     """
     try:
-        r = requests.get(f"https://riddler.io/search/exportcsv?q=pld:{domain}", timeout=30)
+        r = requests.get(f"https://riddler.io/search/exportcsv?q=pld:{domain}", timeout=20)
         riddler_domains = re.findall(r'\[.*?\]",.*?,(.*?),\[', r.text)
 
         # Only append new valid subdomains
@@ -605,7 +654,7 @@ def SDom(domain,filename):
     Get subdomains from ThreatMiner
     """
     try:
-        r = requests.get(f"https://api.threatminer.org/v2/domain.php?q={domain}&rt=5", timeout=30)
+        r = requests.get(f"https://api.threatminer.org/v2/domain.php?q={domain}&rt=5", timeout=20)
         raw_domains = json.loads(r.content)
         threatminer_domains = raw_domains['results']
         
@@ -622,7 +671,7 @@ def SDom(domain,filename):
     Get subdomains from URLScan
     """
     try:
-        r = requests.get(f"https://urlscan.io/api/v1/search/?q={domain}", timeout=30)
+        r = requests.get(f"https://urlscan.io/api/v1/search/?q={domain}", timeout=20)
         urlscan_domains = sorted(set(re.findall(r'https://(.*?).' + domain, r.text)))
     
         # Only append new valid subdomains
@@ -684,6 +733,12 @@ def SDom(domain,filename):
                 if filename != None:
                     f.write(value + "\n")
 
+            if len(value) >= 40 and len(value) <= 44:
+                l = len(value)
+                print("| " + value + " \t|")
+                if filename != None:
+                    f.write(value + "\n")
+
         """
         Print summary
         """
@@ -719,6 +774,8 @@ if __name__ == '__main__':
         print(c.YELLOW + "\nInvalid domain format, example: domain.com" + c.END)
         sys.exit(0)
 
+    warnings.simplefilter('ignore')
+
     # If --output is passed
     if parse.output:
         store_info=1
@@ -746,6 +803,7 @@ if __name__ == '__main__':
             ip_enum(domain)
             ipv6_enum(domain)
             txt_enum(domain)
+            basicEnum(domain)
             cloudgitEnum(domain)
             wafDetector(domain)
             checkActiveSubs(domain,doms)
@@ -809,11 +867,17 @@ if __name__ == '__main__':
             if parse.extra:
                 txt_enum(domain)
 
+            if parse.enum:
+                basicEnum(domain)
+
             if parse.repos:
                 cloudgitEnum(domain)
 
             if parse.waf:
                 wafDetector(domain)
+
+            if parse.check:
+                checkActiveSubs(domain,doms)
 
             if parse.wayback:
                 wayback(domain)
