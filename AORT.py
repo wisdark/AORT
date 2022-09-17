@@ -76,6 +76,8 @@ def banner():
         else:
             print(c.BLUE + "Internet connection: " + c.GREEN + "✔" + c.END)
 
+    print(c.BLUE + "Target: " + c.GREEN + domain + c.END)
+
 # Argument parser Function
 def parseArgs():
 
@@ -96,8 +98,9 @@ def parseArgs():
     p.add_argument("-c", "--check", help="check active subdomains and store them into a file", action='store_true', required=False)
     #p.add_argument("--osint", help="perform OSINT to find some valid accounts in different applications", action='store_true', required=False)
     p.add_argument("--enum", help="stealthily enumerate and identify common technologies", action='store_true', required=False)
-    p.add_argument("--wayback", help="find useful information about the domain and his different endpoints using The Wayback Machine", action="store_true", required=False)
+    p.add_argument("--wayback", help="find useful information about the domain and his different endpoints using The Wayback Machine and other services", action="store_true", required=False)
     p.add_argument("--all", help="perform all the enumeration at once (best choice)", action='store_true', required=False)
+    p.add_argument("-q", "--quiet", help="don't print the banner", action='store_true', required=False)
     p.add_argument("--version", help="display the script version", action='store_true', required=False)
 
     return p.parse_args()
@@ -399,36 +402,6 @@ def cloudgitEnum(domain):
     if r.status_code == 200:
         print(c.YELLOW + "Gitlab account found: https://gitlab.com/" + domain.split(".")[0] + " - " + str(r.status_code) + " status code" + c.END)
 
-# Function to check valid accounts on different platforms
-def osint(domain):
-    
-    print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Searching valid accounts associated to the domain (social networks and more)\n" + c.END)
-    
-    """
-    URLs array
-    """
-
-    osint_urls = ["https://twitter.com/{}","https://www.instagram.com/{}/","https://www.facebook.com/{}","https://pypi.org/user/{}","https://about.me/{}","https://www.airliners.net/user/{}/profile/photos","https://bitbucket.org/{}/","https://buymeacoff.ee/{}","https://www.chess.com/member/{}","https://www.clubhouse.com/@{}","https://dev.to/{}","https://www.dailymotion.com/{}","https://hub.docker.com/u/{}/","https://www.fandom.com/u/{}","https://www.fiverr.com/{}","https://flipboard.com/@{}","https://www.freelancer.com/u/{}","http://en.gravatar.com/{}","https://hackerearth.com/@{}","https://hackerone.com/{}","https://imgur.com/user/{}","https://launchpad.net/~{}","https://leetcode.com/{}","https://medium.com/@{}","https://myspace.com/{}","https://notabug.org/{}","https://pastebin.com/u/{}","https://www.patreon.com/{}","https://www.reddit.com/user/{}","https://www.snapchat.com/add/{}","https://sourceforge.net/u/{}","https://t.me/{}","https://tiktok.com/@{}","https://www.twitch.tv/{}","https://vsco.co/{}","https://vimeo.com/{}","https://www.virustotal.com/ui/users/{}/trusted_users"]
-
-    valid_counter = 0
-
-    for url in osint_urls:
-
-        r = requests.get((url).format(domain.split(".")[0]), allow_redirects=True)
-
-        if r.status_code == 200 and "not found" not in r.text and "Sorry, nobody" not in r.text and "Sorry, this" not in r.text and "Error 404" not in r.text and "doesn’t exist" not in r.text and "Page Not Found" not in r.text and "this page is not available" not in r.text:
-
-            valid_counter += 1
-
-            if valid_counter == 1:
-                print(c.YELLOW + "Valid accounts" + c.END)
-                print(c.YELLOW + "-------------" + c.END)
-
-            print(c.YELLOW + (url).format(domain.split(".")[0]) + c.END)
-
-    if valid_counter <= 0:
-        print(c.YELLOW + "Any account found" + c.END)
-
 # Wayback Machine function
 def wayback(domain):
 
@@ -441,7 +414,7 @@ def wayback(domain):
     wayback_url = f"http://web.archive.org/cdx/search/cdx?url=*.{domain}/*&output=json&fl=original&collapse=urlkey"
     
     """
-    Get information in an array
+    Get information from Wayback Machine
     """
     try:
         r = requests.get(wayback_url, timeout=20)
@@ -468,6 +441,25 @@ def wayback(domain):
         file = open(f"{domain_name}-wayback.txt", "a")
         file.write(result[0] + "\n")
 
+    
+    """
+    Get URLs and endpoints from URLScan
+    """
+
+    try:
+        r = requests.get(f"https://urlscan.io/api/v1/search/?q=domain:{domain}", timeout=20)
+
+        myresp = json.loads(r.text)
+        results = myresp["results"]
+
+        for res in results:
+            url = res["task"]["url"]
+
+            file = open(f"{domain_name}-wayback.txt", "a")
+            file.write(url + "\n")
+    except:
+        pass
+
     print(c.YELLOW + f"\nInformation stored in {domain_name}-wayback.txt" + c.END)
 
 #def createReport(domain):
@@ -480,8 +472,8 @@ def checkStatus(subdomain, file):
     try:
         r = requests.get("https://" + subdomain, timeout=2)
 
-        if r.status_code == 200 or r.status_code == 302 or r.status_code == 301 or r.status_code == 401:
-            file.write(subdomain + "\n")
+        if r.status_code:
+            file.write("https://" + subdomain + "\n")
     except:
         pass
 
@@ -559,7 +551,7 @@ def basicEnum(domain):
 
 # Main Domain Discoverer Function
 def SDom(domain,filename):
-    banner()
+    
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Discovering valid subdomains using passive techniques...\n" + c.END)
     sleep(0.1)
 
@@ -755,6 +747,15 @@ def SDom(domain,filename):
     else:
         print(c.YELLOW + "Any subdomain discovered through SSL transparency" + c.END)
 
+# Check if the given target is active/real
+def checkDomain(domain):
+
+    try:
+        addr = socket.gethostbyname(domain)
+    except:
+        print(c.YELLOW + "\nTarget doesn't exists or is down" + c.END)
+        sys.exit(1)
+
 # Program workflow starts here
 if __name__ == '__main__':
 
@@ -783,11 +784,16 @@ if __name__ == '__main__':
     else:
         filename = None
 
+    global domain
+
+    domain = parse.domain
+    checkDomain(domain)
+
     """
     If --all is passed do all enumeration processes
     """
     if parse.domain and parse.all:
-        domain = parse.domain
+
         if domain.startswith('https://'):
             domain = domain.split('https://')[1]
 
@@ -795,6 +801,10 @@ if __name__ == '__main__':
             domain = domain.split('http://')[1]
 
         try:
+
+            if not parse.quiet:
+                banner()
+
             SDom(domain,filename)
             portScan(domain)
             ns_enum(domain)
@@ -840,6 +850,10 @@ if __name__ == '__main__':
             domain = domain.split('http://')[1]
         
         try:
+
+            if not parse.quiet:
+                banner()
+
             SDom(domain,filename)
     
             """
