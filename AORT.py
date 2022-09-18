@@ -11,20 +11,16 @@ try:
     import sys
     import re
     import socket
-    import whois
     import json
     import argparse
     import platform
-    from Wappalyzer import Wappalyzer, WebPage
     import dns.zone
     import warnings
-    import threading
     import dns.resolver
     import pydig
     from time import sleep
     import os
     import urllib3
-    import pdb
 except:
     print(c.YELLOW + "\n[" + c.RED + "-" + c.YELLOW + "] ERROR requirements missing try to install the requirements: pip3 install -r requirements.txt" + c.END)
     sys.exit(0)
@@ -84,7 +80,7 @@ def parseArgs():
     p = argparse.ArgumentParser(description="AORT - All in One Recon Tool")
     p.add_argument("-d", "--domain", help="domain to search its subdomains", required=True)
     p.add_argument("-o", "--output", help="file to store the scan output", required=False)
-    p.add_argument('-t', '--token', help="api token of https://proxycrawl.com to crawl email accounts", required=False)
+    p.add_argument('-t', '--token', help="api token of hunter.io to discover mail accounts and employees", required=False)
     p.add_argument("-p", "--portscan", help="perform a fast and stealthy scan of the most common ports", action='store_true', required=False)
     p.add_argument("-a", "--axfr", help="try a domain zone transfer attack", action='store_true', required=False)
     p.add_argument("-m", "--mail", help="try to enumerate mail servers", action='store_true', required=False)
@@ -96,11 +92,11 @@ def parseArgs():
     p.add_argument("-s", "--subtakeover", help="check if any of the subdomains are vulnerable to Subdomain Takeover", action='store_true', required=False)
     p.add_argument("-r", "--repos", help="try to discover valid repositories and s3 servers of the domain (still improving it)", action='store_true', required=False)
     p.add_argument("-c", "--check", help="check active subdomains and store them into a file", action='store_true', required=False)
-    #p.add_argument("--osint", help="perform OSINT to find some valid accounts in different applications", action='store_true', required=False)
     p.add_argument("--enum", help="stealthily enumerate and identify common technologies", action='store_true', required=False)
+    p.add_argument("--whois", help="perform a whois query to the domain", action='store_true', required=False)
     p.add_argument("--wayback", help="find useful information about the domain and his different endpoints using The Wayback Machine and other services", action="store_true", required=False)
     p.add_argument("--all", help="perform all the enumeration at once (best choice)", action='store_true', required=False)
-    p.add_argument("-q", "--quiet", help="don't print the banner", action='store_true', required=False)
+    p.add_argument("--quiet", help="don't print the banner", action='store_true', required=False)
     p.add_argument("--version", help="display the script version", action='store_true', required=False)
 
     return p.parse_args()
@@ -323,18 +319,37 @@ def wafDetector(domain):
 # Use the token
 def crawlMails(domain, api_token):
 
-    print(c.BLUE + "\n[" + c.GREEN + "+" + c.BLUE + "] Crawling valid email accounts" + c.END)
+    print(c.BLUE + "\n[" + c.GREEN + "+" + c.BLUE + "] Discovering valid mail accounts and employees..." + c.END)
 
     """
-    Use the api of proxycrawl to with your token to get valid emails
+    Use the api of hunter.io with your token to get valid mails
     """
 
-    api_url = f"""https://api.proxycrawl.com/leads?token={api_token}&domain={domain}"""
-
+    sleep(1)
+    api_url = f"""https://api.hunter.io/v2/domain-search?domain={domain}&api_key={api_token}"""
     r = requests.get(api_url)
-    
+    response_data = json.loads(r.text)
+    domain_name = domain.split(".")[0]
     print()
-    print(c.YELLOW + r.text + c.END)
+
+    file = open(f"{domain_name}-mails-data.txt", "w")
+    file.write(r.text)
+    file.close()
+
+    counter = 0
+    for value in response_data["data"]["emails"]:
+
+        if value["first_name"] and value["last_name"]:
+            counter = 1
+            print(c.YELLOW + value["first_name"] + " " + value["last_name"] + " - " + value["value"] + c.END)
+        else:
+            counter = 1
+            print(c.YELLOW + value["value"] + c.END)
+
+    if counter == 0:
+        print(c.YELLOW + "\nAny mails or employees found" + c.END)
+    else:
+        print(c.YELLOW + "\nMore mail data stored in " + domain_name + "-mails-data.txt" + c.END)
 
 # Function to check subdomain takeover
 def subTakeover(all_subdomains):
@@ -466,6 +481,23 @@ def wayback(domain):
 
     #file = open()
 
+# Query the domain
+def whoisLookup(domain):
+
+    print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Performing Whois lookup..." + c.END)
+
+    import whois
+    sleep(1.2)
+
+    try:
+        w = whois.whois(domain) # Two different ways to avoid a strange error
+    except:
+        w = whois.query(domain)
+    try:
+        print(c.YELLOW + f"\n{w}" + c.END)
+    except:
+        print(c.YELLOW + "\nAn error has ocurred or unable to whois " + domain + c.END)
+
 # Function to thread when probing active subdomains
 def checkStatus(subdomain, file):
 
@@ -481,6 +513,8 @@ def checkStatus(subdomain, file):
 def checkActiveSubs(domain,doms):
 
     global file
+
+    import threading
 
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Probing active subdomains..." + c.END)
 
@@ -517,7 +551,7 @@ def portScan(domain):
     Define ports array
     """
 
-    ports = [21,22,23,25,43,53,69,80,88,110,389,443,445,636,873,2049,3000,3001,3306,5000,5001,5985,5986,8000,8001,8080,8081,27017]
+    ports = [21,22,23,25,26,43,53,69,80,81,88,110,389,443,445,636,873,2049,3000,3001,3306,4000,4040,5000,5001,5985,5986,8000,8001,8080,8081,27017]
 
     """
     Iterate through the ports to check if are open
@@ -543,11 +577,16 @@ def basicEnum(domain):
     Use python-Wappalyzer
     """
 
-    wappalyzer = Wappalyzer.latest()
-    webpage = WebPage.new_from_url('https://' + domain)
-    info = wappalyzer.analyze_with_versions(webpage)
+    try:
+        from Wappalyzer import Wappalyzer, WebPage
 
-    print(c.YELLOW + json.dumps(info, sort_keys=True, indent=4) + c.END)
+        wappalyzer = Wappalyzer.latest()
+        webpage = WebPage.new_from_url('https://' + domain)
+        info = wappalyzer.analyze_with_versions(webpage)
+
+        print(c.YELLOW + json.dumps(info, sort_keys=True, indent=4) + c.END)
+    except:
+        print(c.YELLOW + "\nAn error has ocurred or unable to enumerate" + c.END)
 
 # Main Domain Discoverer Function
 def SDom(domain,filename):
@@ -813,13 +852,13 @@ if __name__ == '__main__':
             ip_enum(domain)
             ipv6_enum(domain)
             txt_enum(domain)
+            whoisLookup(domain)
             basicEnum(domain)
             cloudgitEnum(domain)
             wafDetector(domain)
             checkActiveSubs(domain,doms)
             wayback(domain)
             subTakeover(doms)
-            #osint(domain)
 
             if parse.token:
                 crawlMails(domain, parse.token)
@@ -881,6 +920,9 @@ if __name__ == '__main__':
             if parse.extra:
                 txt_enum(domain)
 
+            if parse.whois:
+                whoisLookup(domain)
+
             if parse.enum:
                 basicEnum(domain)
 
@@ -898,9 +940,6 @@ if __name__ == '__main__':
 
             if parse.subtakeover:
                 subTakeover(doms)
-
-            #if parse.osint:
-            #    osint(domain)
 
             if parse.token:
                 crawlMails(domain, parse.token)
