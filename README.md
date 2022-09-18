@@ -62,6 +62,8 @@ python3 AORT.py -d domain.com --all
 
 :ballot_box_with_check: Common enumeration (CMSs, reverse proxies, jquery...)
 
+:ballot_box_with_check: Whois target domain
+
 :ballot_box_with_check: Subdomain Takeover checker
 
 :ballot_box_with_check: Scan common ports
@@ -89,7 +91,7 @@ The WAF detector was modified and addapted from [CRLFSuite](https://github.com/N
 
 All DNS queries are scripted in python at 100%
 
-Email harvesting using Proxycrawl API with personal token (you can register a free account with 100 uses)
+Email harvesting using Hunter.io API with personal token (free signup)
 
 ## Extra
 
