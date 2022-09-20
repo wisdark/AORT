@@ -109,14 +109,16 @@ def ns_enum(domain):
     """
     Query to get NS of the domain
     """
+    data = ""
 
-    data = pydig.query(domain, 'NS')
+    try:
+        data = dns.resolver.resolve(f"{domain}", 'NS')
+    except:
+        pass
 
     if data:
         for ns in data:
-            l = len(ns)
-            ns = ns[:l-1]
-            print(c.YELLOW + ns + c.END)
+            print(c.YELLOW + str(ns) + c.END)
     else:
         print(c.YELLOW + "Unable to enumerate" + c.END)
 
@@ -128,12 +130,16 @@ def ip_enum(domain):
     """
     Query to get ips
     """
+    data = ""
 
-    data = pydig.query(domain, 'A')
-
+    try:
+        data = dns.resolver.resolve(f"{domain}", 'A')
+    except:
+        pass
+    
     if data:
         for ip in data:
-            print(c.YELLOW + ip + c.END)
+            print(c.YELLOW + ip.to_text() + c.END)
     else:
         print(c.YELLOW + "Unable to enumerate" + c.END)
 
@@ -145,8 +151,12 @@ def txt_enum(domain):
     """
     Query to get extra info about the dns
     """
+    data = ""
 
-    data = pydig.query(domain, 'TXT')
+    try:
+        data = dns.resolver.resolve(domain, 'TXT')
+    except:
+        pass
 
     if data:
         for info in data:
@@ -179,22 +189,16 @@ def mail_enum(domain):
     """
     Query to get mail servers
     """
+    data = ""
 
-    data = pydig.query(domain, 'MX')
+    try:
+        data = dns.resolver.resolve(f"{domain}", 'MX')
+    except:
+        pass
 
     if data:
-        for mail_output in data:
-            mail_data = []
-            mail_output = mail_output.split(' ')
-            if len(mail_output) == 1:
-                mail_servers = mail_output[0]
-                mail_data.append(mail_servers)
-            else:
-                mail_output = mail_output[1]
-                l = len(mail_output)
-                mail_servers = mail_output[:l-1]
-                mail_data.append(mail_servers)
-            print(c.YELLOW + mail_data[0] + c.END)
+        for server in data:
+            print(c.YELLOW + str(server).split(" ")[1] + c.END)
     else:
         print(c.YELLOW + "Unable to enumerate" + c.END)
 
@@ -477,10 +481,6 @@ def wayback(domain):
 
     print(c.YELLOW + f"\nInformation stored in {domain_name}-wayback.txt" + c.END)
 
-#def createReport(domain):
-
-    #file = open()
-
 # Query the domain
 def whoisLookup(domain):
 
@@ -585,6 +585,15 @@ def basicEnum(domain):
         info = wappalyzer.analyze_with_versions(webpage)
 
         print(c.YELLOW + json.dumps(info, sort_keys=True, indent=4) + c.END)
+
+        r = requests.get(f"https://{domain}/robots.txt", timeout=4)
+        if r.status_code == 200:
+            print(c.YELLOW + f"\nhttps://{domain}/robots.txt - " + str(r.status_code) + c.END)
+
+        r = requests.get(f"https://{domain}/xmlrpc.php", timeout=4)
+        if r.status_code == 200:
+            print(c.YELLOW + f"\nhttps://{domain}/xmlrpc.php - " + str(r.status_code) + c.END)
+
     except:
         print(c.YELLOW + "\nAn error has ocurred or unable to enumerate" + c.END)
 
