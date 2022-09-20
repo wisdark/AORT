@@ -818,10 +818,10 @@ if __name__ == '__main__':
     parse = parseArgs()
 
     # Check domain format
-    dom_format = parse.domain.split(".")
-    if len(dom_format) != 2:
-        print(c.YELLOW + "\nInvalid domain format, example: domain.com" + c.END)
-        sys.exit(0)
+    #dom_format = parse.domain.split(".")
+    #if len(dom_format) != 2:
+        #print(c.YELLOW + "\nInvalid domain format, example: domain.com" + c.END)
+        #sys.exit(0)
 
     warnings.simplefilter('ignore')
 
