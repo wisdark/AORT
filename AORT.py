@@ -160,7 +160,7 @@ def txt_enum(domain):
 
     if data:
         for info in data:
-            print(c.YELLOW + info + c.END)
+            print(c.YELLOW + info.to_text() + c.END)
     else:
         print(c.YELLOW + "Unable to enumerate" + c.END)
 
