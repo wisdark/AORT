@@ -5,10 +5,22 @@
 # Github: https://github.com/D3Ext/AORT
 # Website: https://d3ext.github.io
 
+import sys
+
+# Output Colours
+class c:
+    PURPLE = '\033[95m'
+    BLUE = '\033[94m'
+    CYAN = '\033[96m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    END = '\033[0m'
+    UNDERLINE = '\033[4m'
+
 # Libraries
 try:
     import requests
-    import sys
     import re
     import socket
     import json
@@ -21,20 +33,10 @@ try:
     from time import sleep
     import os
     import urllib3
-except:
+except Exception as e:
+    print(e)
     print(c.YELLOW + "\n[" + c.RED + "-" + c.YELLOW + "] ERROR requirements missing try to install the requirements: pip3 install -r requirements.txt" + c.END)
     sys.exit(0)
-
-# Output Colours
-class c:
-    PURPLE = '\033[95m'
-    BLUE = '\033[94m'
-    CYAN = '\033[96m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    END = '\033[0m'
-    UNDERLINE = '\033[4m'
 
 # Banner Function
 def banner():
@@ -160,7 +162,7 @@ def txt_enum(domain):
 
     if data:
         for info in data:
-            print(c.YELLOW + info + c.END)
+            print(c.YELLOW + info.to_text() + c.END)
     else:
         print(c.YELLOW + "Unable to enumerate" + c.END)
 
@@ -400,26 +402,35 @@ def cloudgitEnum(domain):
     """
     Check if an github account or a repository the same name exists 
     """
+    counter = 0
 
     r = requests.get("https://" + domain + "/.git/")
     if r.status_code == 200 or r.status_code == 403 or r.status_code == 500:
+        counter = 1
         print(c.YELLOW + "Git repository found: https://" + domain + "/.git/ - " + str(r.status_code) + " status code" + c.END)
 
     r = requests.get("https://" + domain + "/.dev/")
     if r.status_code == 200 or r.status_code == 403 or r.status_code == 500:
+        counter = 1
         print(c.YELLOW + "Possible dev directory found: https://" + domain + "/.dev/ - " + str(r.status_code) + " status code" + c.END)
 
     r = requests.get("https://" + domain + "/dev/")
     if r.status_code == 200 or r.status_code == 403 or r.status_code == 500:
+        counter = 1
         print(c.YELLOW + "Possible dev directory found: https://" + domain + "/dev/ - " + str(r.status_code) + " status code" + c.END)
 
     r = requests.get("https://github.com/" + domain.split(".")[0])
     if r.status_code == 200:
+        counter = 1
         print(c.YELLOW + "Github account found: https://github.com/" + domain.split(".")[0] + " - " + str(r.status_code) + " status code" + c.END)
 
     r = requests.get("https://gitlab.com/" + domain.split(".")[0])
     if r.status_code == 200:
+        counter = 1
         print(c.YELLOW + "Gitlab account found: https://gitlab.com/" + domain.split(".")[0] + " - " + str(r.status_code) + " status code" + c.END)
+
+    if counter == 0:
+        print(c.YELLOW + "Any git service or repository found" + c.END)
 
 # Wayback Machine function
 def wayback(domain):
@@ -503,7 +514,7 @@ def checkStatus(subdomain, file):
 
     try:
         r = requests.get("https://" + subdomain, timeout=2)
-
+        # Just check if the web is up
         if r.status_code:
             file.write("https://" + subdomain + "\n")
     except:
@@ -811,17 +822,17 @@ if __name__ == '__main__':
     
     # If --version is passed
     if "--version" in sys.argv:
-        print("\nSDomDiscover v1.0 - By D3Ext")
+        print("\nSDomDiscover v1.5 - By D3Ext")
         print("Contact me: <d3ext@proton.me>\n")
         sys.exit(0)
 
     parse = parseArgs()
 
     # Check domain format
-    dom_format = parse.domain.split(".")
-    if len(dom_format) != 2:
-        print(c.YELLOW + "\nInvalid domain format, example: domain.com" + c.END)
-        sys.exit(0)
+    #dom_format = parse.domain.split(".")
+    #if len(dom_format) != 2:
+        #print(c.YELLOW + "\nInvalid domain format, example: domain.com" + c.END)
+        #sys.exit(0)
 
     warnings.simplefilter('ignore')
 
