@@ -4,7 +4,7 @@
 
 The purpouse of this tool is helping bug hunters and pentesters during reconnaissance
 
-If you want to know more about the tool you can read my own [post](https://d3ext.github.io/aort) in my blog (written in spanish) 
+If you want to know more about the tool you can read my own [post](https://d3ext.github.io/posts/aort) in my blog (written in spanish) 
 
 ## Installation:
 It can be used in any system with python3
@@ -73,7 +73,7 @@ python3 AORT.py -d example.com --output domains.txt
 
 > Don't show banner
 ```sh
-python3 AORT.py -d example.com -q
+python3 AORT.py -d example.com --quiet
 ```
 
 > Enumerate specifics things using parameters
