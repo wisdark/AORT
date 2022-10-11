@@ -1,6 +1,6 @@
 # All in One Recon Tool
 
-`An easy-to-use python tool to perform dns recon, subdomain enumeration and much more`
+`An easy-to-use python tool to perform subdomain enumeration, endpoints recon and much more`
 
 The purpouse of this tool is helping bug hunters and pentesters during reconnaissance
 
@@ -13,6 +13,8 @@ You can easily install AORT using pip:
 ```sh
 pip3 install aort
 ```
+
+To use it just type "**aort**" into your terminal
 
 If you want to install it from source:
 ```sh
@@ -59,7 +61,7 @@ options:
 
 - A list of examples to use the tool in different ways 
 
-> Most basic usage to dump the enumerated subdomains
+> Most basic usage to dump all the subdomains
 ```sh
 python3 AORT.py -d example.com
 ```
@@ -69,7 +71,7 @@ python3 AORT.py -d example.com
 python3 AORT.py -d example.com --output domains.txt
 ```
 
-> Don't print script banner
+> Don't show banner
 ```sh
 python3 AORT.py -d example.com -q
 ```
@@ -79,7 +81,7 @@ python3 AORT.py -d example.com -q
 python3 AORT.py -d example.com -n -p -w -b --whois --enum # You can use other parameters, see help panel
 ```
 
-> Perform all the recon functions
+> Perform all the recon functions (recommended)
 ```sh
 python3 AORT.py -d domain.com --all
 ```
@@ -122,11 +124,11 @@ python3 AORT.py -d domain.com --all
 
 The tool uses different services to get subdomains in different ways
 
-The WAF detector was modified and addapted from [CRLFSuite](https://github.com/Nefcore/CRLFsuite) concept
+The WAF detector was modified and adapted from [CRLFSuite](https://github.com/Nefcore/CRLFsuite) concept <3
 
-All DNS queries are scripted in python at 100%, no **dig** or any tool needed
+All DNS queries use **dns-python** at 100%, no **dig** or any extra tool needed
 
-Email harvesting using **Hunter.io** API with personal token (free signup)
+Email harvesting functions is done using **Hunter.io** API with personal token (free signup)
 
 ## Extra
 
