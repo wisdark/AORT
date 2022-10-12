@@ -245,14 +245,12 @@ def wafDetector(domain):
         
         elif not domain.endswith("/") and not domain.startswith("https://"):
             response = requests.get('https://' + domain + '/' + payload, verify=False)
-
     except:
         print(c.YELLOW + "An error has ocurred" + c.END)
         try:
             os.remove('wafsign.json')
         except:
             pass
-    
         return None
 
     code = str(response.status_code)
@@ -310,21 +308,18 @@ def crawlMails(domain, api_token):
     response_data = json.loads(r.text)
     domain_name = domain.split(".")[0]
     print()
-
     file = open(f"{domain_name}-mails-data.txt", "w")
     file.write(r.text)
     file.close()
 
     counter = 0
     for value in response_data["data"]["emails"]:
-
         if value["first_name"] and value["last_name"]:
             counter = 1
             print(c.YELLOW + value["first_name"] + " " + value["last_name"] + " - " + value["value"] + c.END)
         else:
             counter = 1
             print(c.YELLOW + value["value"] + c.END)
-
     if counter == 0:
         print(c.YELLOW + "\nAny mails or employees found" + c.END)
     else:
@@ -343,19 +338,15 @@ def subTakeover(all_subdomains):
         try:
             sleep(0.05)
             resquery = dns.resolver.resolve(subdom, 'CNAME')
-            
             for resdata in resquery:
                 resdata = (resdata.to_text())
-                
                 if subdom[-8:] in resdata:
                     r = requests.get("https://" + subdom, allow_redirects=False)
-    
                     if r.status_code == 200:
                         vuln_counter += 1
                         print(c.YELLOW + subdom + " appears to be vulnerable" + c.END)
                 else:
                     pass
-
         except KeyboardInterrupt:
             sys.exit(c.RED + "\n[!] Interrupt handler received, exiting...\n" + c.END)
         except:
@@ -381,6 +372,12 @@ def cloudgitEnum(domain):
     try:
         r = requests.get("https://github.com/" + domain.split(".")[0])
         print(c.YELLOW + "Github account URL: https://github.com/" + domain.split(".")[0] + " - " + str(r.status_code) + " status code" + c.END)
+        #if r.status_code == 200:
+            #git_option = input("Do you want to analyze further the github account and its repos? [y/n]: ")
+            #if git_option == "y" or git_option == "yes":
+                #domain_name = domain.split(".")[0]
+                #r = requests.get("https://api.github.com/users/{domain_name}/repos")
+                #__import__('pdb').set_trace()
     except:
         pass
     try:
@@ -432,16 +429,37 @@ def wayback(domain):
     except:
         pass
 
-    print(c.YELLOW + f"\nInformation stored in {domain_name}-wayback.txt" + c.END)
-    sleep(0.2)
-    print(c.YELLOW + f"Filtering discovered URLs to find potential XSS and Open Redirect vulnerable endpoints..." + c.END)
+    print(c.YELLOW + f"\nAll URLs stored in {domain_name}-wayback.txt" + c.END)
+    sleep(0.3)
+    # Now filter wayback output to organize endpoints
+    print(c.YELLOW + f"\nGetting .json endpoints from URLs..." + c.END)
+    sleep(0.5)
+    try: # Remove existing file (avoid error when appending data to file)
+        os.remove(f"{domain_name}-json.txt")
+    except:
+        pass
+    urls = open(f"{domain_name}-wayback.txt", "r").readlines()
+    json_endpoints = []
+    for url in urls:
+        if ".json" in url and url not in json_endpoints:
+            json_endpoints.append(url)
+    # Store .json endpoints
+    f = open(f"{domain_name}-json-endpoints.txt", "a")
+    for json_url in json_endpoints:
+        f.write(json_url)
+    f.close()
+    json_len = len(json_endpoints)
+    print(c.YELLOW + f"JSON endpoints stored in {domain_name}-json.txt ({json_len} endpoints)" + c.END)
+    sleep(0.4)
+    print(c.YELLOW + f"Filtering out URLs to find potential XSS and Open Redirect vulnerable endpoints..." + c.END)
     sleep(0.2)
     wayback_content = open(f"{domain_name}-wayback.txt", "r").readlines()
-
+    redirects_file_exists = 1
     # Check if redirects.json parameters file exists
     if os.path.exists("redirects.json") == False:
+        redirects_file_exists = 0
         r = requests.get("https://raw.githubusercontent.com/D3Ext/AORT/main/utils/redirects.json")
-        redirects_file = open("redirects_json", "w")
+        redirects_file = open("redirects.json", "w")
         redirects_file.write(r.text)
         redirects_file.close()
 
@@ -468,9 +486,11 @@ def wayback(domain):
     end_info = len(redirect_urls)
     print(c.YELLOW + f"Open Redirects endpoints stored in {domain_name}-redirects.txt ({end_info} endpoints)" + c.END)
 
+    xss_file_exists = 1
     if os.path.exists("xss.json") == False:
+        xss_file_exists = 0
         r = requests.get("https://raw.githubusercontent.com/D3Ext/AORT/main/utils/xss.json")
-        xss_file = open("xss_json", "w")
+        xss_file = open("xss.json", "w")
         xss_file.write(r.text)
         xss_file.close()
 
@@ -494,6 +514,12 @@ def wayback(domain):
 
     end_info = len(xss_urls)
     print(c.YELLOW + f"XSS endpoints stored in {domain_name}-xss.txt ({end_info} endpoints)" + c.END)
+    sleep(0.1)
+
+    if redirects_file_exists == 0:
+        os.remove("redirects.json")
+    if xss_file_exists == 0:
+        os.remove("xss.json")
 
 # Query the domain
 def whoisLookup(domain):
@@ -514,49 +540,52 @@ def whoisLookup(domain):
 def checkStatus(subdomain, file):
     try:
         r = requests.get("https://" + subdomain, timeout=2)
-        # Just check if the web is up
+        # Just check if the web is up and https
         if r.status_code:
             file.write("https://" + subdomain + "\n")
     except:
-        pass
+        try:
+            r = requests.get("http://" + subdomain, timeout=2)
+            # Check if is up and http
+            if r.status_code:
+                file.write("http://" + subdomain + "\n")
+        except:
+            pass
 
 # Check status function
 def checkActiveSubs(domain,doms):
-
     global file
     import threading
 
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Probing active subdomains..." + c.END)
 
     if len(doms) >= 100:
-        option = input(c.YELLOW + "\nThere are a lot of subdomains to check, (+100) do you want to check all of them [y/n]: " + c.END)
+        subs_total = len(doms)
+        option = input(c.YELLOW + f"\nThere are a lot of subdomains to check, ({subs_total}) do you want to check all of them [y/n]: " + c.END)
         
         if option == "n" or option == "no":
             sleep(0.2)
             return
-
-    """
-    Define filename
-    """
+    """ Define filename """
     domain_name = domain.split(".")[0]
     file = open(f"{domain_name}-active-subs.txt", "w")
     """
     Iterate through all subdomains in threads
     """
+    threads_list = []
     for subdomain in doms:
         t = threading.Thread(target=checkStatus, args=(subdomain,file))
         t.start()
-
-    sleep(6)
+        threads_list.append(t)
+    for proc_thread in threads_list: # Wait until all thread finish
+        proc_thread.join()
 
     print(c.YELLOW + f"\nActive subdomains stored in {domain_name}-active-subs.txt" + c.END)
 
 # Check if common ports are open
 def portScan(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Scanning most common ports on " + domain + "\n" + c.END)
-    """
-    Define ports array
-    """
+    """ Define ports array """
     ports = [21,22,23,25,26,43,53,69,80,81,88,110,135,389,443,445,636,873,1433,2049,3000,3001,3306,4000,4040,5000,5001,5985,5986,8000,8001,8080,8081,27017]
     """
     Iterate through the ports to check if are open
@@ -575,7 +604,7 @@ def findBackups(domain):
     back_counter = 0
     extensions = ["sql.tar","tar","tar.gz","gz","tar.bzip2","sql.bz2","sql.7z","zip","sql.gz","7z"]
     hostname = domain.split(".")[0]
-
+    # Some common backup filenames with multiple extensions
     for ext in extensions:
         r = requests.get("https://" + domain + "/" + hostname + "." + ext, verify=False)
         if r.status_code != 404:
@@ -676,20 +705,11 @@ def basicEnum(domain):
             print(c.YELLOW + json.dumps(info, sort_keys=True, indent=4) + c.END)
         else:
             print(c.YELLOW + "\nAny common technologies found" + c.END)
-        
-        r = requests.get(f"https://{domain}/robots.txt", timeout=4)
-        print(c.YELLOW + f"https://{domain}/robots.txt - " + str(r.status_code) + c.END)
-        r = requests.get(f"https://{domain}/actuator/heapdump", timeout=4)
-        print(c.YELLOW + f"https://{domain}/actuator/heapdump - " + str(r.status_code) + c.END)
-        r = requests.get(f"https://{domain}/datahub/heapdump", timeout=4)
-        print(c.YELLOW + f"https://{domain}/datahub/heapdump - " + str(r.status_code) + c.END)
-        r = requests.get(f"https://{domain}/datahub/actuator/heapdump", timeout=4)
-        print(c.YELLOW + f"https://{domain}/datahub/actuator/heapdump - " + str(r.status_code) + c.END)
-        r = requests.get(f"https://{domain}/heapdump", timeout=4)
-        print(c.YELLOW + f"https://{domain}/heapdump - " + str(r.status_code) + c.END)
-        r = requests.get(f"https://{domain}/xmlrpc.php", timeout=4)
-        print(c.YELLOW + f"https://{domain}/xmlrpc.php - " + str(r.status_code) + c.END)
 
+        endpoints = ["robots.txt","xmlrpc.php","actuator/heapdump","datahub/heapdump","datahub/actuator/heapdump","heapdump","admin/",".env","version.txt","README.md","license.txt"]
+        for end in endpoints:
+            r = requests.get(f"https://{domain}/{end}", timeout=4)
+            print(c.YELLOW + f"https://{domain}/{end} - " + str(r.status_code) + c.END)
     except:
         print(c.YELLOW + "An error has ocurred or unable to enumerate" + c.END)
 
@@ -706,7 +726,6 @@ def SDom(domain,filename):
         r = requests.get("https://crt.sh/?q=" + domain + "&output=json", timeout=20)
         formatted_json = json.dumps(json.loads(r.text), indent=4)
         crt_domains = sorted(set(re.findall(r'"common_name": "(.*?)"', formatted_json)))
-
         # Only append new valid subdomains
         for dom in crt_domains:
             if dom.endswith(domain) and dom not in doms:
@@ -722,7 +741,6 @@ def SDom(domain,filename):
     try:
         r = requests.get(f"https://otx.alienvault.com/api/v1/indicators/domain/{domain}/passive_dns", timeout=20)
         alienvault_domains = sorted(set(re.findall(r'"hostname": "(.*?)"', r.text)))
-
         # Only append new valid subdomains
         for dom in alienvault_domains:
             if dom.endswith(domain) and dom not in doms:
@@ -737,7 +755,6 @@ def SDom(domain,filename):
     try:
         r = requests.get(f"https://api.hackertarget.com/hostsearch/?q={domain}", timeout=20)
         hackertarget_domains = re.findall(r'(.*?),', r.text)
-        
         # Only append new valid subdomains
         for dom in hackertarget_domains:
             if dom.endswith(domain) and dom not in doms:
@@ -752,7 +769,6 @@ def SDom(domain,filename):
     try:
         r = requests.get(f"https://rapiddns.io/subdomain/{domain}", timeout=20)
         rapiddns_domains = re.findall(r'target="_blank".*?">(.*?)</a>', r.text)
-
         # Only append new valid subdomains
         for dom in rapiddns_domains:
             if dom.endswith(domain) and dom not in doms:
@@ -767,7 +783,6 @@ def SDom(domain,filename):
     try:
         r = requests.get(f"https://riddler.io/search/exportcsv?q=pld:{domain}", timeout=20)
         riddler_domains = re.findall(r'\[.*?\]",.*?,(.*?),\[', r.text)
-
         # Only append new valid subdomains
         for dom in riddler_domains:
             if dom.endswith(domain) and dom not in doms:
@@ -783,7 +798,6 @@ def SDom(domain,filename):
         r = requests.get(f"https://api.threatminer.org/v2/domain.php?q={domain}&rt=5", timeout=20)
         raw_domains = json.loads(r.content)
         threatminer_domains = raw_domains['results']
-        
         # Only append new valid subdomains
         for dom in threatminer_domains:
             if dom.endswith(domain) and dom not in doms:
@@ -798,7 +812,6 @@ def SDom(domain,filename):
     try:
         r = requests.get(f"https://urlscan.io/api/v1/search/?q={domain}", timeout=20)
         urlscan_domains = sorted(set(re.findall(r'https://(.*?).' + domain, r.text)))
-    
         # Only append new valid subdomains
         for dom in urlscan_domains:
             dom = dom + "." + domain
