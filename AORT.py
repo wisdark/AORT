@@ -61,7 +61,6 @@ def banner():
     print(c.BLUE + "Current OS: " + c.GREEN + platform.system() + " " + platform.release() + c.END)
 
     internet_check = socket.gethostbyname(socket.gethostname())
-
     if internet_check == "127.0.0.1":
         if platform.system() == "Windows":
             print(c.BLUE + "Internet connection: " + c.RED + "-" + c.END)
@@ -77,7 +76,6 @@ def banner():
 
 # Argument parser Function
 def parseArgs():
-
     p = argparse.ArgumentParser(description="AORT - All in One Recon Tool")
     p.add_argument("-d", "--domain", help="domain to search its subdomains", required=True)
     p.add_argument("-o", "--output", help="file to store the scan output", required=False)
@@ -98,10 +96,10 @@ def parseArgs():
     p.add_argument("--enum", help="stealthily enumerate and identify common technologies", action='store_true', required=False)
     p.add_argument("--whois", help="perform a whois query to the domain", action='store_true', required=False)
     p.add_argument("--wayback", help="find useful information about the domain and his different endpoints using The Wayback Machine and other services", action="store_true", required=False)
+    #p.add_argument("--fuzz", help="use a fuzzing wordlist with common files and directories", actionn='store_true', require=False)
     p.add_argument("--all", help="perform all the enumeration at once (best choice)", action='store_true', required=False)
     p.add_argument("--quiet", help="don't print the banner", action='store_true', required=False)
     p.add_argument("--version", help="display the script version", action='store_true', required=False)
-
     return p.parse_args()
 
 # Nameservers Function 
@@ -165,8 +163,11 @@ def ipv6_enum(domain):
     """
     Query to get ipv6
     """
-    data = pydig.query(domain, 'AAAA')
-    
+    data = ""
+    try:
+        data = pydig.query(domain, 'AAAA')
+    except:
+        pass
     if data:
         for info in data:
             print(c.YELLOW + info + c.END)
@@ -236,13 +237,10 @@ def wafDetector(domain):
         """
         if domain.endswith("/") and domain.startswith("https://"):
             response = requests.get(domain + payload, verify=False)
-
         elif domain.endswith("/") and not domain.startswith("https://"):
             response = requests.get('https://' + domain + payload, verify=False)
-
         elif not domain.endswith("/") and domain.startswith("https://"):
             response = requests.get(domain + '/' + payload, verify=False)
-        
         elif not domain.endswith("/") and not domain.startswith("https://"):
             response = requests.get('https://' + domain + '/' + payload, verify=False)
     except:
@@ -706,7 +704,7 @@ def basicEnum(domain):
         else:
             print(c.YELLOW + "\nAny common technologies found" + c.END)
 
-        endpoints = ["robots.txt","xmlrpc.php","actuator/heapdump","datahub/heapdump","datahub/actuator/heapdump","heapdump","admin/",".env","version.txt","README.md","license.txt"]
+        endpoints = ["robots.txt","xmlrpc.php","wp-cron.php","actuator/heapdump","datahub/heapdump","datahub/actuator/heapdump","heapdump","admin/",".env",".config","version.txt","README.md","license.txt","config.php.bak","api/","feed.xml","CHANGELOG.md","config.json","cgi-bin/","env.json",".htaccess","js/","kibana/","log.txt"]
         for end in endpoints:
             r = requests.get(f"https://{domain}/{end}", timeout=4)
             print(c.YELLOW + f"https://{domain}/{end} - " + str(r.status_code) + c.END)
