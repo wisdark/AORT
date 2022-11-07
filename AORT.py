@@ -319,7 +319,7 @@ def crawlMails(domain, api_token):
             counter = 1
             print(c.YELLOW + value["value"] + c.END)
     if counter == 0:
-        print(c.YELLOW + "\nAny mails or employees found" + c.END)
+        print(c.YELLOW + "\nNo mails or employees found" + c.END)
     else:
         print(c.YELLOW + "\nMore mail data stored in " + domain_name + "-mails-data.txt" + c.END)
 
@@ -351,7 +351,7 @@ def subTakeover(all_subdomains):
             pass
     
     if vuln_counter <= 0:
-        print(c.YELLOW + "Any subdomain is vulnerable" + c.END)
+        print(c.YELLOW + "No subdomains are vulnerable" + c.END)
 
 # Function to enumerate github and cloud
 def cloudgitEnum(domain):
@@ -625,7 +625,7 @@ def findBackups(domain):
             print(c.YELLOW + "https://" + domain + "/admin" + "." + ext + " - " + str(r.status_code) + c.END)
 
     if back_counter == 0:
-        print(c.YELLOW + "Any backup file found" + c.END)
+        print(c.YELLOW + "No backup files found" + c.END)
 
 # Look for Google Maps API key and test if it's vulnerable
 def findSecrets(domain):
@@ -684,7 +684,7 @@ def findSecrets(domain):
             pass
 
     if key_counter != 1:
-        print(c.YELLOW + "\nAny secrets found" + c.END)
+        print(c.YELLOW + "\nNo secrets found" + c.END)
 
 # Perform basic enumeration
 def basicEnum(domain):
@@ -702,7 +702,7 @@ def basicEnum(domain):
         if info != "{}":
             print(c.YELLOW + json.dumps(info, sort_keys=True, indent=4) + c.END)
         else:
-            print(c.YELLOW + "\nAny common technologies found" + c.END)
+            print(c.YELLOW + "\nNo common technologies found" + c.END)
 
         endpoints = ["robots.txt","xmlrpc.php","wp-cron.php","actuator/heapdump","datahub/heapdump","datahub/actuator/heapdump","heapdump","admin/",".env",".config","version.txt","README.md","license.txt","config.php.bak","api/","feed.xml","CHANGELOG.md","config.json","cgi-bin/","env.json",".htaccess","js/","kibana/","log.txt"]
         for end in endpoints:
@@ -870,7 +870,7 @@ def SDom(domain,filename):
             f.close()
             print(c.BLUE + "\n[" + c.GREEN + "+" + c.BLUE + "] Output stored in " + filename)
     else:
-        print(c.YELLOW + "Any subdomain discovered through SSL transparency" + c.END)
+        print(c.YELLOW + "No subdomains discovered through SSL transparency" + c.END)
 
 # Check if the given target is active
 def checkDomain(domain):
