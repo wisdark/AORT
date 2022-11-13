@@ -6,3 +6,4 @@ argparse
 whois
 pytest-warnings
 python-Wappalyzer
+python-whois
