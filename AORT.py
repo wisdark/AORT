@@ -358,7 +358,7 @@ def cloudgitEnum(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Looking for git repositories and public development info\n" + c.END)
     sleep(0.2)
     try:
-        r = requests.get("https://" + domain + "/.git/")
+        r = requests.get("https://" + domain + "/.git/", verify=False)
         print(c.YELLOW + "Git repository URL: https://" + domain + "/.git/ - " + str(r.status_code) + " status code" + c.END)
     except:
         pass
