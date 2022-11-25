@@ -623,9 +623,16 @@ def findBackups(domain):
 
 # Look for Google Maps API key and test if it's vulnerable
 def findSecrets(domain):
+    for protocol in ["https", "http"]:
+        findSecretsFromUrl(protocol + "://" + domain)
+
+def findSecretsFromUrl(url):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Trying to found possible secrets and api keys..." + c.END)
     # Initial request
-    r = requests.get("https://" + domain, verify=False)
+    try:
+        r = requests.get(url, verify=False)
+    except:
+        return
     js_list = []
     key_counter = 0
     url_list = re.findall(r'src="(.*?)"', r.text) + re.findall(r'href="(.*?)"', r.text)
@@ -637,11 +644,11 @@ def findSecrets(domain):
     if len(js_list) >= 1:
         print(c.YELLOW + "\nDiscovered JS endpoints:" + c.END)
     for js in js_list:
-        print(c.YELLOW + "https://" + domain + js + c.END)
+        print(c.YELLOW + url + js + c.END)
 
     for js_endpoint in js_list:
         try:
-            r = requests.get("https://" + domain + js_endpoint, verify=False)
+            r = requests.get(url + js_endpoint, verify=False)
         except:
             pass
         if "https://maps.googleapis.com/" in r.text:
