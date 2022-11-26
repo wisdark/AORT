@@ -358,7 +358,7 @@ def cloudgitEnum(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Looking for git repositories and public development info\n" + c.END)
     sleep(0.2)
     try:
-        r = requests.get("https://" + domain + "/.git/")
+        r = requests.get("https://" + domain + "/.git/", verify=False)
         print(c.YELLOW + "Git repository URL: https://" + domain + "/.git/ - " + str(r.status_code) + " status code" + c.END)
     except:
         pass
@@ -600,38 +600,39 @@ def portScan(domain):
 def findBackups(domain):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Looking for common backup files...\n" + c.END)
     back_counter = 0
-    extensions = ["sql.tar","tar","tar.gz","gz","tar.bzip2","sql.bz2","sql.7z","zip","sql.gz","7z"]
     hostname = domain.split(".")[0]
+    protocols = ["http", "https"]
+    filenames = [hostname, domain, "backup", "admin"]
+    extensions = ["sql.tar","tar","tar.gz","gz","tar.bzip2","sql.bz2","sql.7z","zip","sql.gz","7z"]
     # Some common backup filenames with multiple extensions
-    for ext in extensions:
-        r = requests.get("https://" + domain + "/" + hostname + "." + ext, verify=False)
-        if r.status_code != 404:
-            back_counter += 1
-            print(c.YELLOW + "https://" + domain + "/" + hostname + "." + ext + " - " + str(r.status_code) + c.END)
-    for ext in extensions:
-        r = requests.get("https://" + domain + "/" + domain + "." + ext, verify=False)
-        if r.status_code != 404:
-            back_counter += 1
-            print(c.YELLOW + "https://" + domain + "/" + domain + "." + ext + " - " + str(r.status_code) + c.END)
-    for ext in extensions:
-        r = requests.get("https://" + domain + "/backup" + "." + ext, verify=False)
-        if r.status_code != 404:
-            back_counter += 1
-            print(c.YELLOW + "https://" + domain + "/backup" + "." + ext + " - " + str(r.status_code) + c.END)
-    for ext in extensions:
-        r = requests.get("https://" + domain + "/admin" + "." + ext, verify=False)
-        if r.status_code != 404:
-            back_counter += 1
-            print(c.YELLOW + "https://" + domain + "/admin" + "." + ext + " - " + str(r.status_code) + c.END)
+    for protocol in protocols:
+        for filename in filenames:
+            for ext in extensions:
+                url = protocol + "://" + domain + "/" + filename + "." + ext
+                try:
+                    r = requests.get(url, verify=False)
+                    code = r.status_code
+                except:
+                    continue
+                if code != 404:
+                    back_counter += 1
+                    print(c.YELLOW + url + " - " + str(code) + c.END)
 
     if back_counter == 0:
         print(c.YELLOW + "No backup files found" + c.END)
 
 # Look for Google Maps API key and test if it's vulnerable
 def findSecrets(domain):
+    for protocol in ["https", "http"]:
+        findSecretsFromUrl(protocol + "://" + domain)
+
+def findSecretsFromUrl(url):
     print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Trying to found possible secrets and api keys..." + c.END)
     # Initial request
-    r = requests.get("https://" + domain, verify=False)
+    try:
+        r = requests.get(url, verify=False)
+    except:
+        return
     js_list = []
     key_counter = 0
     url_list = re.findall(r'src="(.*?)"', r.text) + re.findall(r'href="(.*?)"', r.text)
@@ -643,11 +644,11 @@ def findSecrets(domain):
     if len(js_list) >= 1:
         print(c.YELLOW + "\nDiscovered JS endpoints:" + c.END)
     for js in js_list:
-        print(c.YELLOW + "https://" + domain + js + c.END)
+        print(c.YELLOW + url + js + c.END)
 
     for js_endpoint in js_list:
         try:
-            r = requests.get("https://" + domain + js_endpoint, verify=False)
+            r = requests.get(url + js_endpoint, verify=False)
         except:
             pass
         if "https://maps.googleapis.com/" in r.text:
