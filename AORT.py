@@ -623,11 +623,11 @@ def findBackups(domain):
 
 # Look for Google Maps API key and test if it's vulnerable
 def findSecrets(domain):
+    print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Trying to found possible secrets and api keys..." + c.END)
     for protocol in ["https", "http"]:
         findSecretsFromUrl(protocol + "://" + domain)
 
 def findSecretsFromUrl(url):
-    print(c.BLUE + "\n[" + c.END + c.GREEN + "+" + c.END + c.BLUE + "] Trying to found possible secrets and api keys..." + c.END)
     # Initial request
     try:
         r = requests.get(url, verify=False)
